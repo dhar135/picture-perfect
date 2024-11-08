@@ -1,0 +1,41 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "picture-perfect-app-e9002",
+          "appId": "1:750572798291:android:b2e0a54f3bb88069b4a1a6",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "picture-perfect-app-e9002",
+          "appId": "1:750572798291:ios:e0931aafe38b8881b4a1a6",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "picture-perfect-app-e9002",
+          "appId": "1:750572798291:ios:e0931aafe38b8881b4a1a6",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "picture-perfect-app-e9002",
+          "configurations": {
+            "android": "1:750572798291:android:b2e0a54f3bb88069b4a1a6",
+            "ios": "1:750572798291:ios:e0931aafe38b8881b4a1a6",
+            "macos": "1:750572798291:ios:e0931aafe38b8881b4a1a6",
+            "web": "1:750572798291:web:d81c9c162ce18044b4a1a6",
+            "windows": "1:750572798291:web:e5e48bdd2f7d7fdcb4a1a6"
+          }
+        }
+      }
+    }
+  }
+}
