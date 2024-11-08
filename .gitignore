@@ -6,3 +6,9 @@
 .env
 *.log
 .DS_Store
+
+picture_perfect/linux/flutter/generated_plugin_registrant.cc
+picture_perfect/windows/flutter/generated_plugins.cmake
+picture_perfect/windows/flutter/generated_plugin_registrant.cc
+picture_perfect/macos/Flutter/GeneratedPluginRegistrant.swift
+picture_perfect/linux/flutter/generated_plugins.cmake
