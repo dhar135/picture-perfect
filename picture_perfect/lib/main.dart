@@ -1,13 +1,20 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
+import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.dart';
+import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
+import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
+import 'package:provider/provider.dart';
+import 'src/core/theme/app_theme.dart';
+import 'src/presentation/pages/home/home_page.dart';
+import 'src/presentation/providers/auth_provider.dart';
+import 'src/presentation/pages/auth/spash_page.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const MyApp());    
+  await Firebase.initializeApp();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -15,29 +22,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Picture Perfect',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: const HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Picture Perfect'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-      body: const Center(
-        child: Text('Welcome to Picture Perfect'),
-      ),
-    );
+    return ChangeNotifierProvider(
+        create: (_) => AuthProvider(),
+        child: MaterialApp(
+          title: 'Picture Perfect',
+          theme: AppTheme.darkTheme,
+          home: const SplashPage(),
+          routes: {
+            '/login': (context) => const LoginPage(),
+            '/signup': (context) => const SignupPage(),
+            '/home': (context) => const HomePage(),
+            '/create': (context) => const CreatePollPage(),
+            '/explore': (context) => const ExplorePage(),
+            '/profile': (context) => const ProfilePage(),
+          },
+        ));
   }
 }
