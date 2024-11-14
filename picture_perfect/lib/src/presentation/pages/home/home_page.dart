@@ -15,7 +15,12 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        actions: [_buildLogoutButton()],
+        actions: [
+          Text(
+            'Sign Out'
+          ),
+          IconButton.outlined(onPressed: _signOut, icon: const Icon(Icons.arrow_back))
+        ],
       ),
       body: SafeArea(
         child: Padding(

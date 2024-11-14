@@ -99,7 +99,7 @@ class _LoginPageState extends State<LoginPage> {
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.secondary,
                     ),
-                  ),
+                  ).gradient(),
                   const SizedBox(height: 48),
 
                   // Email Field
