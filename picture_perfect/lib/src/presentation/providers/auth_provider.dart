@@ -66,7 +66,7 @@ class AuthProvider extends ChangeNotifier {
           _errorMessage = 'Invalid email address.';
           break;
         default:
-          _errorMessage = 'An error occurred. Please try again.';
+          _errorMessage = 'No Account Found';
       }
       notifyListeners();
       return false;

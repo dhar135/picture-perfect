@@ -1,5 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/presentation/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,27 +23,31 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
+        // Get AuthProvider from context
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+        final success = await authProvider.signInWithEmailAndPassword(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
         );
         // Navigate to home page on success
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/home');
+          if (success) {
+          } else {
+            // Show the error message from the provider
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(authProvider.errorMessage ?? 'Login failed'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
-      } on FirebaseAuthException catch (e) {
-        // Show error message
-        String errorMessage = 'An error occurred. Please try again.';
-        if (e.code == 'user-not-found') {
-          errorMessage = 'No user found with this email.';
-        } else if (e.code == 'wrong-password') {
-          errorMessage = 'Wrong password provided.';
-        }
-
+      } on Exception catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage),
+              content: Text(e.toString()),
               backgroundColor: Colors.red,
             ),
           );

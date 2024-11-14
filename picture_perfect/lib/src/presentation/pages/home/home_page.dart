@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
+        actions: [
+          _buildLogoutButton(),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -29,6 +37,17 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _navigateToLogin() {
+    Navigator.of(context).pushReplacementNamed('/login');
+  }
+
+  Widget _buildLogoutButton() {
+    return ElevatedButton(
+      onPressed: _navigateToLogin,
+      child: const Text('Logout'),
     );
   }
 }
