@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/AuthGuard.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/authguard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/AuthWrapper.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
@@ -18,6 +18,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await AuthProvider().signOut();
   runApp(const MyApp());
 }
 

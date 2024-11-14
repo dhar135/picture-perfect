@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/presentation/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,9 +15,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
-        actions: [
-          _buildLogoutButton(),
-        ],
+        actions: [_buildLogoutButton()],
       ),
       body: SafeArea(
         child: Padding(
@@ -40,13 +40,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _navigateToLogin() {
-    Navigator.of(context).pushReplacementNamed('/login');
+  Future<void> _signOut() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      await authProvider.signOut();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error signing out: ${e.toString()}')),
+      );
+    }
   }
 
   Widget _buildLogoutButton() {
     return ElevatedButton(
-      onPressed: _navigateToLogin,
+      onPressed: _signOut,
       child: const Text('Logout'),
     );
   }
