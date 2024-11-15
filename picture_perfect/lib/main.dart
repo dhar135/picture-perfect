@@ -34,7 +34,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/authguard.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
