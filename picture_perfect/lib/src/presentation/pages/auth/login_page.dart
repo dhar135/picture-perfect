@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
-import 'package:picture_perfect/src/presentation/providers/auth_provider.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -24,19 +24,19 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final success = await authProvider.signInWithEmailAndPassword(
+        final viewModel = context.read<AuthViewModel>();
+        final success = await viewModel.signIn(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-        
+
         if (mounted) {
           if (success) {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  authProvider.errorMessage ?? 'Login failed',
+                  viewModel.errorMessage ?? 'Login failed',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 backgroundColor: Theme.of(context).colorScheme.error,
@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -116,11 +116,13 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.secondary),
+                        borderSide:
+                            BorderSide(color: theme.colorScheme.secondary),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.secondary),
+                        borderSide:
+                            BorderSide(color: theme.colorScheme.secondary),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -157,11 +159,13 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.secondary),
+                        borderSide:
+                            BorderSide(color: theme.colorScheme.secondary),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: theme.colorScheme.secondary),
+                        borderSide:
+                            BorderSide(color: theme.colorScheme.secondary),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),

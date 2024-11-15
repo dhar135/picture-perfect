@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:picture_perfect/src/presentation/providers/auth_provider.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
@@ -24,8 +24,8 @@ class _SignupPageState extends State<SignupPage> {
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final success = await authProvider.signUpWithEmailAndPassword(
+        final viewModel = context.read<AuthViewModel>();
+        final success = await viewModel.signUp(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
@@ -38,7 +38,7 @@ class _SignupPageState extends State<SignupPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  authProvider.errorMessage ?? 'Signup failed',
+                  viewModel.errorMessage ?? 'Signup failed',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 backgroundColor: Theme.of(context).colorScheme.error,
