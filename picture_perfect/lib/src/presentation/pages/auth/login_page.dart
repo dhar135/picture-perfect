@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,25 +15,20 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _isPasswordVisible = false;
 
   Future<void> _signIn() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      final viewModel = context.read<AuthViewModel>();
 
       try {
-        final viewModel = context.read<AuthViewModel>();
         final success = await viewModel.signIn(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
+          _emailController.text,
+          _passwordController.text,
         );
 
         if (mounted) {
-          if (success) {
-          } else {
+          if (!success) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -43,8 +39,9 @@ class _LoginPageState extends State<LoginPage> {
               ),
             );
           }
+          // No need for else case as AuthWrapper will handle navigation
         }
-      } on Exception catch (e) {
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -55,12 +52,6 @@ class _LoginPageState extends State<LoginPage> {
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
         }
       }
     }
@@ -201,32 +192,39 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 24),
 
                   // Login Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: theme.colorScheme.secondary,
-                      foregroundColor: theme.scaffoldBackgroundColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: theme.scaffoldBackgroundColor,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Login',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.scaffoldBackgroundColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Consumer<AuthViewModel>(
+                    builder: (context, viewModel, child) {
+                      final isLoading =
+                          viewModel.status == AuthStatus.authenticating;
+
+                      return ElevatedButton(
+                        onPressed: isLoading ? null : _signIn,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          backgroundColor: theme.colorScheme.secondary,
+                          foregroundColor: theme.scaffoldBackgroundColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                        ),
+                        child: isLoading
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: theme.scaffoldBackgroundColor,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Login',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.scaffoldBackgroundColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
 
