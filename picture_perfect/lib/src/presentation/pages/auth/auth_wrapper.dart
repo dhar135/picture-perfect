@@ -13,18 +13,16 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
       builder: (context, viewModel, _) {
-        // Show splash screen while checking initial auth state
-        if (viewModel.status == AuthStatus.initial) {
-          return const SplashPage();
+        switch (viewModel.status) {
+          case AuthStatus.initial:
+            return const SplashPage();
+          case AuthStatus.authenticated:
+            return const HomePage();
+          case AuthStatus.authenticating:
+          case AuthStatus.unauthenticated:
+          case AuthStatus.error:
+            return const LoginPage();
         }
-
-        // Show login page if not authenticated
-        if (!viewModel.isAuthenticated) {
-          return const LoginPage();
-        }
-
-        // Show home page if authenticated
-        return const HomePage();
       },
     );
   }

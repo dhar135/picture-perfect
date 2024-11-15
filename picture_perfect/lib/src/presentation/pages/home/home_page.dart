@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
+import 'package:picture_perfect/src/data/repositories/user_repository.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -44,8 +46,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _signOut() async {
     try {
-      final AuthRepository authRepository = AuthRepository();
-      await authRepository.signOut();
+      await AuthViewModel(authRepository: AuthRepository(), userRepository: UserRepository()).signOut();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
@@ -14,27 +17,20 @@ class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
   bool _isPasswordVisible = false;
 
   Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      final viewModel = context.read<AuthViewModel>();
 
       try {
-        final viewModel = context.read<AuthViewModel>();
         final success = await viewModel.signUp(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
 
         if (mounted) {
-          if (success) {
-            // Navigate to home or login page
-            Navigator.of(context).pushNamed('/home');
-          } else {
+          if (!success) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -44,9 +40,26 @@ class _SignupPageState extends State<SignupPage> {
                 backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
+          } else {
+            // Optionally show success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Account created successfully!',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            await Future.delayed(const Duration(seconds: 2));
+
+            if (mounted) {
+              context.go('/home');
+            }
           }
         }
-      } on Exception catch (e) {
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -57,12 +70,6 @@ class _SignupPageState extends State<SignupPage> {
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
         }
       }
     }
@@ -102,7 +109,7 @@ class _SignupPageState extends State<SignupPage> {
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.secondary,
                     ),
-                  ),
+                  ).gradient(),
                   const SizedBox(height: 48),
 
                   // Email Field
@@ -243,39 +250,48 @@ class _SignupPageState extends State<SignupPage> {
                   const SizedBox(height: 24),
 
                   // Sign Up Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: theme.colorScheme.secondary,
-                      foregroundColor: theme.scaffoldBackgroundColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: theme.scaffoldBackgroundColor,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Sign Up',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.scaffoldBackgroundColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Consumer<AuthViewModel>(
+                    builder: (context, viewModel, child) {
+                      final isLoading =
+                          viewModel.status == AuthStatus.authenticating;
+
+                      return ElevatedButton(
+                        onPressed: isLoading ? null : _signUp,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          backgroundColor: theme.colorScheme.secondary,
+                          foregroundColor: theme.scaffoldBackgroundColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                        ),
+                        child: isLoading
+                            ? SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: theme.scaffoldBackgroundColor,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Sign Up',
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.scaffoldBackgroundColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
 
                   // Login Link
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushNamed('/login');
+                      if (mounted) {
+                        context.go('/login');
+                      }
                     },
                     child: Text(
                       "Already have an account? Login",

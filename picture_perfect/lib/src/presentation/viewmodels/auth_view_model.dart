@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/foundation.dart';
 import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:picture_perfect/src/core/utils/auth_result.dart';
-import '../../core/utils/result.dart';
+import 'package:picture_perfect/src/core/utils/result.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/user_repository.dart';
@@ -11,7 +11,7 @@ import '../../data/repositories/user_repository.dart';
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepository;
   final UserRepository _userRepository;
-  
+
   AuthStatus _status = AuthStatus.initial;
   auth.User? _firebaseUser;
   UserModel? _user;
@@ -20,9 +20,8 @@ class AuthViewModel extends ChangeNotifier {
   AuthViewModel({
     required AuthRepository authRepository,
     required UserRepository userRepository,
-  }) : 
-    _authRepository = authRepository,
-    _userRepository = userRepository {
+  })  : _authRepository = authRepository,
+        _userRepository = userRepository {
     _init();
   }
 
@@ -37,32 +36,39 @@ class AuthViewModel extends ChangeNotifier {
   void _init() {
     _authRepository.authStateChanges.listen((auth.User? firebaseUser) async {
       _firebaseUser = firebaseUser;
-      
+
       if (firebaseUser == null) {
         _status = AuthStatus.unauthenticated;
         _user = null;
+        notifyListeners();
+        return;
+      }
+
+      _status = AuthStatus.authenticating;
+      notifyListeners();
+
+      // Fetch user data from Firestore
+      final result = await _userRepository.getUserById(firebaseUser.uid);
+
+      if (result case Success(data: final userData)) {
+        _user = userData;
+        _status = AuthStatus.authenticated;
       } else {
-        // Fetch user data from Firestore
-        final result = await _userRepository.getUserById(firebaseUser.uid);
-        
-        switch (result) {
-          case Success(data: final userData):
-            _user = userData;
-            _status = AuthStatus.authenticated;
-          case Failure():
-            // If user document doesn't exist, create it
-            final createResult = await _userRepository.createUser(firebaseUser);
-            switch (createResult) {
-              case Success(data: final newUser):
-                _user = newUser;
-                _status = AuthStatus.authenticated;
-              case Failure(message: final message):
-                _errorMessage = message;
-                _status = AuthStatus.error;
-            }
+        // If user document doesn't exist, create it
+        final createResult = await _userRepository.createUser(firebaseUser);
+
+        if (createResult case Success(data: final newUser)) {
+          _user = newUser;
+          _status = AuthStatus.authenticated;
+        } else {
+          _errorMessage = switch (createResult) {
+            Failure(message: final message) => message,
+            _ => 'Failed to create user'
+          };
+          _status = AuthStatus.error;
         }
       }
-      
+
       notifyListeners();
     });
   }
@@ -81,15 +87,19 @@ class AuthViewModel extends ChangeNotifier {
 
       switch (result) {
         case AuthSuccess():
+          // The auth state listener (_init) will handle setting the user and status
           return true;
+
         case AuthFailure(message: final message):
-          _status = AuthStatus.error;
+          _status = AuthStatus
+              .unauthenticated; // Change to unauthenticated on failure
           _errorMessage = message;
           notifyListeners();
           return false;
       }
     } catch (e) {
-      _status = AuthStatus.error;
+      _status =
+          AuthStatus.unauthenticated; // Change to unauthenticated on error
       _errorMessage = 'An unexpected error occurred';
       notifyListeners();
       return false;
@@ -97,6 +107,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // Sign up with email and password
+// In AuthViewModel class
   Future<bool> signUp(String email, String password, {String? name}) async {
     try {
       _status = AuthStatus.authenticating;
@@ -109,21 +120,39 @@ class AuthViewModel extends ChangeNotifier {
       );
 
       switch (result) {
-        case AuthSuccess():
-          // Update display name if provided
-          if (name != null) {
-            await _authRepository.updateProfile(displayName: name);
+        case AuthSuccess(user: final firebaseUser):
+          if (firebaseUser == null) {
+            _status = AuthStatus.unauthenticated;
+            _errorMessage = 'Failed to create user account';
+            notifyListeners();
+            return false;
           }
-          return true;
-          
+          final userResult = await _userRepository.createUser(firebaseUser);
+
+          switch (userResult) {
+            case Success(data: final userData):
+              _user = userData;
+              _firebaseUser = firebaseUser;
+              _status = AuthStatus.authenticated;
+              notifyListeners();
+              return true;
+
+            case Failure(message: final message):
+              _status = AuthStatus.unauthenticated;
+              _errorMessage = message;
+              notifyListeners();
+              await firebaseUser.delete();
+              return false;
+          }
+
         case AuthFailure(message: final message):
-          _status = AuthStatus.error;
+          _status = AuthStatus.unauthenticated;
           _errorMessage = message;
           notifyListeners();
           return false;
       }
     } catch (e) {
-      _status = AuthStatus.error;
+      _status = AuthStatus.unauthenticated;
       _errorMessage = 'An unexpected error occurred';
       notifyListeners();
       return false;
@@ -133,7 +162,7 @@ class AuthViewModel extends ChangeNotifier {
   // Sign out
   Future<void> signOut() async {
     try {
-      await _authRepository.signOut();
+      final result = await _authRepository.signOut();
       _status = AuthStatus.unauthenticated;
       _user = null;
       _firebaseUser = null;
@@ -159,7 +188,7 @@ class AuthViewModel extends ChangeNotifier {
         final authResult = await _authRepository.updateProfile(
           displayName: name,
         );
-        
+
         if (authResult case AuthFailure()) {
           return false;
         }
@@ -194,7 +223,7 @@ class AuthViewModel extends ChangeNotifier {
   Future<bool> sendPasswordResetEmail(String email) async {
     try {
       final result = await _authRepository.sendPasswordResetEmail(email.trim());
-      
+
       switch (result) {
         case AuthSuccess():
           return true;

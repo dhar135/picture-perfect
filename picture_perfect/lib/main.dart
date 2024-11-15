@@ -33,19 +33,14 @@ library;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
+import 'package:picture_perfect/src/core/router/app_router.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
 import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
-import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.dart';
-import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
-import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 import 'src/core/theme/app_theme.dart';
-import 'src/presentation/pages/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,8 +50,6 @@ void main() async {
 
   final authRepository = AuthRepository();
   final userRepository = UserRepository();
-
-  await authRepository.signOut();
 
   runApp(
     MultiProvider(
@@ -73,24 +66,40 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      // Sign out when app is closed
+      context.read<AuthViewModel>().signOut();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Picture Perfect',
       theme: AppTheme.darkTheme,
-      home: const AuthWrapper(),
-      routes: {
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        // Protected routes
-        '/home': (context) => const AuthGuard(child: HomePage()),
-        '/create': (context) => const AuthGuard(child: CreatePollPage()),
-        '/explore': (context) => const AuthGuard(child: ExplorePage()),
-        '/profile': (context) => const AuthGuard(child: ProfilePage()),
-      },
+      routerConfig: AppRouter.router,
     );
   }
 }

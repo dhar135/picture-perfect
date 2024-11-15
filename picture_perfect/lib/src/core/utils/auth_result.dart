@@ -7,6 +7,7 @@ sealed class AuthResult {
 final class AuthSuccess extends AuthResult {
   final User? user;
   const AuthSuccess(this.user);
+  
 }
 
 final class AuthFailure extends AuthResult {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:picture_perfect/src/core/router/app_router.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/core/enum/auth_status.dart';
@@ -231,7 +233,7 @@ class _LoginPageState extends State<LoginPage> {
                   // Sign Up Link
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushNamed('/signup');
+                      context.go('/signup');
                     },
                     child: Text(
                       "Don't have an account? Sign up",
