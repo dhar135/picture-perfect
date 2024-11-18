@@ -194,9 +194,6 @@ class _LoginPageState extends State<LoginPage> {
                           viewModel.error!,
                           style: theme.textTheme.bodyMedium,
                         ),
-                      ElevatedButton(
-                          onPressed: () => context.go('/home'),
-                          child: Text('Go to Home page'))
                     ],
                   ),
                 ),

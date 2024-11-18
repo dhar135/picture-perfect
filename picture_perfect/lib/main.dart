@@ -13,13 +13,6 @@
 /// * Dark theme implementation
 /// * MVVM architecture
 ///
-/// Routes:
-/// * /login - Login page
-/// * /signup - Sign up page
-/// * /home - Protected home page
-/// * /create - Protected poll creation page
-/// * /explore - Protected explore page
-/// * /profile - Protected profile page
 ///
 /// Dependencies:
 /// * firebase_core
@@ -34,8 +27,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
 import 'package:picture_perfect/src/core/router/app_router.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
-import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
@@ -45,12 +38,20 @@ import 'src/core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  AppLogger.init();
+  AppLogger.info('Starting Picture Perfect app...');
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    AppLogger.info('Firebase initialized successfully');
+  } catch (e, stackTrace) {
+    AppLogger.error('Failed to initialize Firebase', e, stackTrace);
+  }
 
   final authRepository = AuthRepository();
-  final userRepository = UserRepository();
 
   runApp(
     MultiProvider(
@@ -103,5 +104,3 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     );
   }
 }
-
-// AuthGuard Widget to protect routes
