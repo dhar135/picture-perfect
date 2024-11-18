@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
-import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
@@ -19,68 +18,19 @@ class _SignupPageState extends State<SignupPage> {
   final _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
 
-  Future<void> _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      final viewModel = context.read<AuthViewModel>();
-
-      try {
-        final success = await viewModel.signUp(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
-
-        if (mounted) {
-          if (!success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  viewModel.errorMessage ?? 'Signup failed',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
-          } else {
-            // Optionally show success message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Account created successfully!',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-
-            await Future.delayed(const Duration(seconds: 2));
-
-            if (mounted) {
-              context.go('/home');
-            }
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                e.toString(),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _handleSignUp(BuildContext context, AuthViewModel viewModel) {
+    if (_formKey.currentState!.validate()) {
+      viewModel.signUp(
+          _emailController.text, _passwordController.text, context);
+    }
   }
 
   @override
@@ -252,11 +202,10 @@ class _SignupPageState extends State<SignupPage> {
                   // Sign Up Button
                   Consumer<AuthViewModel>(
                     builder: (context, viewModel, child) {
-                      final isLoading =
-                          viewModel.status == AuthStatus.authenticating;
-
                       return ElevatedButton(
-                        onPressed: isLoading ? null : _signUp,
+                        onPressed: viewModel.isLoading
+                            ? null
+                            : () => _handleSignUp(context, viewModel),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.all(16),
                           backgroundColor: theme.colorScheme.secondary,
@@ -265,22 +214,9 @@ class _SignupPageState extends State<SignupPage> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: isLoading
-                            ? SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: theme.scaffoldBackgroundColor,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : Text(
-                                'Sign Up',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.scaffoldBackgroundColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                        child: viewModel.isLoading
+                            ? const CircularProgressIndicator(strokeWidth: 2)
+                            : const Text('Sign Up'),
                       );
                     },
                   ),

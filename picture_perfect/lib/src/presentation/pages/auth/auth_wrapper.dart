@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/spash_page.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/splash_page.dart';
 import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';

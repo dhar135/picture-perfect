@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
-import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,13 +10,23 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  var _selectedIndex = 0;
+
+  void _handleSignOut(BuildContext context, AuthViewModel viewModel) {
+    viewModel.signOut(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(builder: (BuildContext context) {
           return IconButton(
-              onPressed: _signOut, icon: const Icon(Icons.arrow_back_ios_new));
+              onPressed: () {
+                final viewModel = context.read<AuthViewModel>();
+                viewModel.signOut(context);
+              },
+              icon: const Icon(Icons.logout));
         }),
         title: const Text('Home'),
       ),
@@ -41,17 +50,24 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              label: 'Home',
+              activeIcon: Icon(Icons.home)),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outlined),
+              label: 'Profile',
+              activeIcon: Icon(Icons.person)),
+        ],
+        currentIndex: _selectedIndex,
+        onTap: (value) {
+          setState(() {
+            _selectedIndex = value;
+          });
+        },
+      ),
     );
-  }
-
-  Future<void> _signOut() async {
-    try {
-      await AuthViewModel(authRepository: AuthRepository(), userRepository: UserRepository()).signOut();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out: ${e.toString()}')),
-      );
-    }
   }
 }

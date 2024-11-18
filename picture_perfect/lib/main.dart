@@ -40,6 +40,7 @@ import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
+
 import 'src/core/theme/app_theme.dart';
 
 void main() async {
@@ -56,8 +57,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthViewModel(
-            authRepository: authRepository,
-            userRepository: userRepository,
+            authRepository,
           ),
         ),
       ],
@@ -90,7 +90,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.detached) {
       // Sign out when app is closed
-      context.read<AuthViewModel>().signOut();
+      context.read<AuthViewModel>().signOut(context);
     }
   }
 

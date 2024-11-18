@@ -81,6 +81,8 @@ class AuthRepository {
         return 'The password provided is too weak.';
       case 'email-already-in-use':
         return 'An account already exists for this email.';
+      case 'invalid-credential':
+        return 'Invalid email or password. Please check your credentials and try again.';
       default:
         return 'An error occurred. Please try again.';
     }
