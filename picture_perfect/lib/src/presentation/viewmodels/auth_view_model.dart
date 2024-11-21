@@ -25,11 +25,7 @@ class AuthViewModel extends ChangeNotifier {
     _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         AppLogger.info('User authenticated: ${user.email}');
-        _currentUser = UserModel(
-          id: user.uid,
-          email: user.email ?? '',
-          createdAt: DateTime.now(),
-        );
+        _currentUser = UserModel.fromFirebaseUser(user);
 
         AppLogger.info('User Info: ${currentUser?.toJson()}');
         _status = AuthStatus.authenticated;

@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold.dart';
 import 'package:provider/provider.dart';
 
@@ -21,6 +23,14 @@ class _ProfilePageState extends State<ProfilePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    // Load current user's profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authViewModel = context.read<AuthViewModel>();
+      final userViewModel = context.read<UserViewModel>();
+      if (authViewModel.currentUser != null) {
+        userViewModel.loadUserProfile(authViewModel.currentUser!.id);
+      }
+    });
   }
 
   @override
@@ -32,6 +42,11 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     final userViewModel = context.watch<UserViewModel>();
+    final authViewModel = context.watch<AuthViewModel>();
+    final currentUserId = authViewModel.currentUser!.id;
+
+    AppLogger.info('Current User ID: $currentUserId');
+    AppLogger.info('Loaded user data: ${userViewModel.user?.toString()}');
 
     // If user is null or loading, show loading or error state
     if (userViewModel.isLoading) {
@@ -47,6 +62,12 @@ class _ProfilePageState extends State<ProfilePage>
 
     if (user == null) {
       return const Center(child: Text('No user data available'));
+    }
+
+    // Verify the loaded user matches current user
+    if (user.id != currentUserId) {
+      AppLogger.info('User ID mismatch: ${user.id} != $currentUserId');
+      return const Center(child: Text('User data mismatch'));
     }
 
     return DynamicScaffold(
