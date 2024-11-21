@@ -29,9 +29,11 @@ import 'package:picture_perfect/firebase_options.dart';
 import 'package:picture_perfect/src/core/router/app_router.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
+import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
 
 import 'src/core/theme/app_theme.dart';
@@ -52,6 +54,7 @@ void main() async {
   }
 
   final authRepository = AuthRepository();
+  final userRepository = UserRepository();
 
   runApp(
     MultiProvider(
@@ -61,6 +64,8 @@ void main() async {
             authRepository,
           ),
         ),
+        ChangeNotifierProvider(create: (_) => UserViewModel(userRepository)),
+        Provider<UserRepository>(create: (_) => UserRepository())
       ],
       child: const MyApp(),
     ),
@@ -99,7 +104,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Picture Perfect',
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,
     );
   }
