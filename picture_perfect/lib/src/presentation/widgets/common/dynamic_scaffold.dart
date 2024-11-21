@@ -6,8 +6,6 @@ import 'package:picture_perfect/src/presentation/widgets/profile/edit_profile_wi
 import 'package:picture_perfect/src/presentation/widgets/profile/profile_settings_widget.dart';
 import 'package:provider/provider.dart';
 
-import '../../viewmodels/auth_view_model.dart';
-
 class DynamicScaffold extends StatefulWidget {
   final Widget child;
   const DynamicScaffold({super.key, required this.child});
@@ -33,9 +31,6 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
   PreferredSizeWidget _buildDynamicAppBar(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
     final userViewModel = context.watch<UserViewModel>();
-    final authViewModel = context.watch<AuthViewModel>();
-    final userId = authViewModel.currentUser?.id;
-
     // If user is null or loading, show loading or error state
     if (userViewModel.isLoading) {
       return AppBar(title: CircularProgressIndicator());

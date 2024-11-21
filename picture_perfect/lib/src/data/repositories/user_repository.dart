@@ -1,11 +1,13 @@
 // lib/data/repositories/user_repository.dart
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:io';
+import 'package:picture_perfect/src/core/utils/logger.dart';
 
-import '../models/user_model.dart';
 import '../../core/utils/result.dart';
+import '../models/user_model.dart';
 
 class UserRepository {
   final FirebaseFirestore _firestore;
@@ -85,16 +87,21 @@ class UserRepository {
     required File imageFile,
   }) async {
     try {
-      // Create storage reference
+      if (!await imageFile.exists()) {
+        return const Failure(message: 'Image file does not exist');
+      }
+
       final storageRef = _storage.ref().child('profile_pictures/$userId.jpg');
 
-      // Upload image
-      await storageRef.putFile(imageFile);
+      // Upload with metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'userId': userId},
+      );
 
-      // Get download URL
+      await storageRef.putFile(imageFile, metadata);
       final imageUrl = await storageRef.getDownloadURL();
 
-      // Update user document
       await _firestore.collection(collection).doc(userId).update({
         'profilePicture': imageUrl,
         'lastUpdatedAt': FieldValue.serverTimestamp(),
@@ -102,6 +109,7 @@ class UserRepository {
 
       return Success(imageUrl);
     } catch (e) {
+      AppLogger.info('Profile picture upload error: $e');
       return Failure(
         message: 'Failed to update profile picture',
         error: e,

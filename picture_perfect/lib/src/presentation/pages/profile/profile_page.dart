@@ -4,7 +4,6 @@ import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold
 import 'package:provider/provider.dart';
 
 import '../../../data/models/user_model.dart';
-import '../../viewmodels/auth_view_model.dart';
 import '../../viewmodels/user_view_model.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -33,7 +32,6 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     final userViewModel = context.watch<UserViewModel>();
-    final authViewModel = context.watch<AuthViewModel>();
 
     // If user is null or loading, show loading or error state
     if (userViewModel.isLoading) {
@@ -113,14 +111,6 @@ class _ProfileHeader extends StatelessWidget {
                     ? const Icon(Icons.person, size: 50)
                     : null,
               ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.camera_alt),
-                  onPressed: () => _updateProfilePicture(context),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -139,10 +129,6 @@ class _ProfileHeader extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  void _updateProfilePicture(BuildContext context) {
-    // Implement image picker functionality
   }
 }
 
