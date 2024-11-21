@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -14,59 +16,7 @@ class _SignupPageState extends State<SignupPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
   bool _isPasswordVisible = false;
-
-  Future<void> _signUp() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      try {
-        final viewModel = context.read<AuthViewModel>();
-        final success = await viewModel.signUp(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
-
-        if (mounted) {
-          if (success) {
-            // Navigate to home or login page
-            Navigator.of(context).pushNamed('/home');
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  viewModel.errorMessage ?? 'Signup failed',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-            );
-          }
-        }
-      } on Exception catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                e.toString(),
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    }
-  }
 
   @override
   void dispose() {
@@ -74,6 +24,13 @@ class _SignupPageState extends State<SignupPage> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _handleSignUp(BuildContext context, AuthViewModel viewModel) {
+    if (_formKey.currentState!.validate()) {
+      viewModel.signUp(
+          _emailController.text, _passwordController.text, context);
+    }
   }
 
   @override
@@ -102,7 +59,7 @@ class _SignupPageState extends State<SignupPage> {
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.secondary,
                     ),
-                  ),
+                  ).gradient(),
                   const SizedBox(height: 48),
 
                   // Email Field
@@ -139,7 +96,7 @@ class _SignupPageState extends State<SignupPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
                         return 'Please enter a valid email';
                       }
@@ -243,39 +200,42 @@ class _SignupPageState extends State<SignupPage> {
                   const SizedBox(height: 24),
 
                   // Sign Up Button
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signUp,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(16),
-                      backgroundColor: theme.colorScheme.secondary,
-                      foregroundColor: theme.scaffoldBackgroundColor,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: theme.scaffoldBackgroundColor,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Sign Up',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.scaffoldBackgroundColor,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  Consumer<AuthViewModel>(
+                    builder: (context, viewModel, child) {
+                      if (viewModel.error != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(viewModel.error!),
+                            backgroundColor: Colors.red,
+                          ));
+                        });
+                      }
+                      return ElevatedButton(
+                        onPressed: viewModel.isLoading
+                            ? null
+                            : () => _handleSignUp(context, viewModel),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          backgroundColor: theme.colorScheme.secondary,
+                          foregroundColor: theme.scaffoldBackgroundColor,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                        ),
+                        child: viewModel.isLoading
+                            ? const CircularProgressIndicator(strokeWidth: 2)
+                            : const Text('Sign Up'),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
 
                   // Login Link
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushNamed('/login');
+                      if (mounted) {
+                        context.go('/login');
+                      }
                     },
                     child: Text(
                       "Already have an account? Login",

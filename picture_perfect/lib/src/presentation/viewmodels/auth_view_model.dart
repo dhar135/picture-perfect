@@ -1,81 +1,195 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:picture_perfect/src/core/utils/auth_result.dart';
-import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
-import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/core/enum/auth_status.dart';
+import 'package:picture_perfect/src/core/utils/auth_result.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
+import 'package:picture_perfect/src/core/utils/result.dart';
+import 'package:picture_perfect/src/data/repositories/user_repository.dart';
+import 'package:provider/provider.dart';
+
+import '../../data/models/user_model.dart';
+import '../../data/repositories/auth_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  final AuthRepository _repository;
+  final AuthRepository _authRepository;
+  UserModel? _currentUser;
+  bool _isLoading = false;
+  String? _error;
   AuthStatus _status = AuthStatus.initial;
-  User? _user;
-  String? _errorMessage;
 
-  AuthViewModel(this._repository) {
-    _init();
+  AuthViewModel(this._authRepository) {
+    AppLogger.info('Initializing AuthViewModel');
+
+    _authRepository.authStateChanges.listen((user) {
+      if (user != null) {
+        AppLogger.info('User authenticated: ${user.email}');
+        _currentUser = UserModel(
+          id: user.uid,
+          email: user.email ?? '',
+          createdAt: DateTime.now(),
+        );
+
+        AppLogger.info('User Info: ${currentUser?.toJson()}');
+        _status = AuthStatus.authenticated;
+      } else {
+        AppLogger.info('User unauthenticated');
+        _currentUser = null;
+        _status = AuthStatus.unauthenticated;
+      }
+      notifyListeners();
+    });
+  }
+  // Getters
+  String? get error => _error;
+  bool get isLoading => _isLoading;
+  UserModel? get currentUser => _currentUser;
+  bool get isAuthenticated => _status == AuthStatus.authenticated;
+  AuthStatus get status => _status;
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 
-  void _init() {
-    _repository.authStateChanges.listen((User? user) {
-      _user = user;
-      _status = user != null 
-          ? AuthStatus.authenticated 
-          : AuthStatus.unauthenticated;
+  void _setError(String error) {
+    _error = error;
+    _status = AuthStatus.error;
+    AppLogger.error('Error set: $error');
+    notifyListeners();
+
+    Timer(const Duration(seconds: 3), () {
+      AppLogger.debug('Clearing error after 3 seconds');
+      _error = null;
       notifyListeners();
     });
   }
 
-  AuthStatus get status => _status;
-  User? get user => _user;
-  String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _status == AuthStatus.authenticated;
-
-  Future<bool> signIn(String email, String password) async {
-    _status = AuthStatus.authenticating;
-    _errorMessage = null;
+  void _clearError() {
+    AppLogger.debug('Clearing error');
+    _error = null;
     notifyListeners();
+  }
 
-    final result = await _repository.signInWithEmailAndPassword(email, password);
-
-    switch (result) {
-      case AuthSuccess():
-        return true;
-      case AuthFailure(message: final message):
-        _status = AuthStatus.error;
-        _errorMessage = message;
-        notifyListeners();
-        return false;
+  void _navigateAfterAuth(BuildContext context, bool success) {
+    AppLogger.info('_navigateAfterAuth called with success: $success');
+    if (context.mounted) {
+      if (success) {
+        AppLogger.info('Navigating to /home');
+        context.go('/home');
+      }
     }
   }
 
-  Future<bool> signUp(String email, String password) async {
+  // Sign in Method
+  Future<void> signIn(
+      String email, String password, BuildContext context) async {
+    AppLogger.info('Attempting to sign in with email: $email');
     _status = AuthStatus.authenticating;
-    _errorMessage = null;
+    _setLoading(true);
+    _clearError();
     notifyListeners();
 
-    final result = await _repository.signUpWithEmailAndPassword(email, password);
+    try {
+      final result =
+          await _authRepository.signInWithEmailAndPassword(email, password);
 
-    switch (result) {
-      case AuthSuccess():
-        return true;
-      case AuthFailure(message: final message):
-        _status = AuthStatus.error;
-        _errorMessage = message;
-        notifyListeners();
-        return false;
+      if (result is AuthSuccess) {
+        AppLogger.info('Sign in successful for email: $email');
+        _status = AuthStatus.authenticated;
+        if (context.mounted) {
+          _navigateAfterAuth(context, true);
+        }
+      } else if (result is AuthFailure) {
+        AppLogger.warning(
+            'Sign in failed for email: $email with message: ${result.message}');
+        _status = AuthStatus.unauthenticated;
+        _setError(result.message);
+      }
+    } catch (e) {
+      AppLogger.error('Exception during sign in: $e');
+      _status = AuthStatus.error;
+      _setError(e.toString());
+    } finally {
+      AppLogger.debug('Sign in process completed');
+      _setLoading(false);
     }
   }
 
-  Future<void> signOut() async {
-    await _repository.signOut();
-    _status = AuthStatus.unauthenticated;
-    _user = null;
-    _errorMessage = null;
-    notifyListeners();
+  // Sign up Method
+  // In AuthViewModel
+  Future<void> signUp(
+      String email, String password, BuildContext context) async {
+    AppLogger.info('Attempting to sign up with email: $email');
+    _status = AuthStatus.authenticating;
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result =
+          await _authRepository.signUpWithEmailAndPassword(email, password);
+
+      if (result is AuthSuccess && context.mounted) {
+        // Get the Firebase user
+        final firebaseUser = result.user;
+
+        // Create user in Firestore using UserRepository
+        final userRepository = context.read<UserRepository>();
+        final userResult = await userRepository.createUser(firebaseUser!);
+
+        if (userResult is Success<UserModel>) {
+          AppLogger.info('Sign up successful for email: $email');
+          _currentUser = userResult.data;
+          _status = AuthStatus.authenticated;
+
+          if (context.mounted) {
+            _navigateAfterAuth(context, true);
+          }
+        } else if (userResult is Failure<UserModel>) {
+          // Handle Firestore user creation failure
+          AppLogger.warning(
+              'Failed to create user in Firestore: ${userResult.message}');
+          _status = AuthStatus.error;
+          _setError('Failed to complete user registration');
+        }
+      } else if (result is AuthFailure) {
+        AppLogger.warning(
+            'Sign up failed for email: $email with message: ${result.message}');
+        _status = AuthStatus.unauthenticated;
+        _setError(result.message);
+      }
+    } catch (e) {
+      AppLogger.error('Exception during sign up: $e');
+      _status = AuthStatus.error;
+      _setError(e.toString());
+    } finally {
+      AppLogger.debug('Sign up process completed');
+      _setLoading(false);
+    }
   }
 
-  void clearError() {
-    _errorMessage = null;
-    notifyListeners();
+  // Sign Out method
+  Future<void> signOut(BuildContext context) async {
+    AppLogger.info('Attempting to sign out');
+    _setLoading(true);
+    _clearError();
+
+    try {
+      await _authRepository.signOut();
+      AppLogger.info('Sign out successful');
+      _currentUser = null;
+      _status = AuthStatus.unauthenticated;
+      if (context.mounted) {
+        AppLogger.info('Navigating to /login');
+        context.go('/login');
+      }
+    } catch (e) {
+      AppLogger.error('Exception during sign out: $e');
+      _setError(e.toString());
+    } finally {
+      AppLogger.debug('Sign out process completed');
+      _setLoading(false);
+    }
   }
 }

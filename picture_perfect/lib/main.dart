@@ -13,13 +13,6 @@
 /// * Dark theme implementation
 /// * MVVM architecture
 ///
-/// Routes:
-/// * /login - Login page
-/// * /signup - Sign up page
-/// * /home - Protected home page
-/// * /create - Protected poll creation page
-/// * /explore - Protected explore page
-/// * /profile - Protected profile page
 ///
 /// Dependencies:
 /// * firebase_core
@@ -33,60 +26,86 @@ library;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
+import 'package:picture_perfect/src/core/router/app_router.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
+import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
-import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.dart';
-import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
-import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
+
 import 'src/core/theme/app_theme.dart';
-import 'src/presentation/pages/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+
+  AppLogger.init();
+  AppLogger.info('Starting Picture Perfect app...');
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    AppLogger.info('Firebase initialized successfully');
+  } catch (e, stackTrace) {
+    AppLogger.error('Failed to initialize Firebase', e, stackTrace);
+  }
 
   final authRepository = AuthRepository();
-
-  await authRepository.signOut();
+  final userRepository = UserRepository();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-            create: (context) => AuthViewModel(authRepository))
+          create: (_) => AuthViewModel(
+            authRepository,
+          ),
+        ),
+        ChangeNotifierProvider(create: (_) => UserViewModel(userRepository)),
+        Provider<UserRepository>(create: (_) => UserRepository())
       ],
       child: const MyApp(),
     ),
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      // Sign out when app is closed
+      context.read<AuthViewModel>().signOut(context);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Picture Perfect',
-      theme: AppTheme.darkTheme,
-      home: const AuthWrapper(),
-      routes: {
-        '/login': (context) => const LoginPage(),
-        '/signup': (context) => const SignupPage(),
-        // Protected routes
-        '/home': (context) => const AuthGuard(child: HomePage()),
-        '/create': (context) => const AuthGuard(child: CreatePollPage()),
-        '/explore': (context) => const AuthGuard(child: ExplorePage()),
-        '/profile': (context) => const AuthGuard(child: ProfilePage()),
-      },
+      theme: AppTheme.lightTheme,
+      routerConfig: AppRouter.router,
     );
   }
 }
-
-// AuthGuard Widget to protect routes

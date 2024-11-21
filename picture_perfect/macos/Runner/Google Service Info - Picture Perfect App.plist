@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.picturePerfect</string>
+	<string>com.example.picturePerfect.macos</string>
 	<key>PROJECT_ID</key>
 	<string>picture-perfect-app-e9002</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:750572798291:ios:e0931aafe38b8881b4a1a6</string>
+	<string>1:750572798291:ios:b2d5f355f89ffab4b4a1a6</string>
 </dict>
 </plist>
