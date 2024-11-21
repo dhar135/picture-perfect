@@ -156,6 +156,15 @@ class _LoginPageState extends State<LoginPage> {
                       // Login Button
                       Consumer<AuthViewModel>(
                         builder: (context, viewModel, child) {
+                          if (viewModel.error != null) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                content: Text(viewModel.error!),
+                                backgroundColor: Colors.red,
+                              ));
+                            });
+                          }
                           return ElevatedButton(
                             onPressed: viewModel.isLoading
                                 ? null
@@ -189,11 +198,6 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-                      if (viewModel.error != null)
-                        Text(
-                          viewModel.error!,
-                          style: theme.textTheme.bodyMedium,
-                        ),
                     ],
                   ),
                 ),

@@ -96,7 +96,7 @@ class _SignupPageState extends State<SignupPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your email';
                       }
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
                           .hasMatch(value)) {
                         return 'Please enter a valid email';
                       }
@@ -202,6 +202,14 @@ class _SignupPageState extends State<SignupPage> {
                   // Sign Up Button
                   Consumer<AuthViewModel>(
                     builder: (context, viewModel, child) {
+                      if (viewModel.error != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text(viewModel.error!),
+                            backgroundColor: Colors.red,
+                          ));
+                        });
+                      }
                       return ElevatedButton(
                         onPressed: viewModel.isLoading
                             ? null
