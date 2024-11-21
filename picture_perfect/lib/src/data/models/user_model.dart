@@ -1,4 +1,3 @@
-// lib/data/models/user_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
@@ -11,7 +10,9 @@ class UserModel {
   final int followers;
   final int following;
   final int posts;
-  final List<String> savedPosts;
+  final List<String> savedPosts; // IDs of saved polls or posts
+  final List<String> createdPolls; // IDs of polls created by the user
+  final List<String> votedPolls; // IDs of polls the user has voted on
   final DateTime createdAt;
   final DateTime? lastLoginAt;
 
@@ -25,6 +26,8 @@ class UserModel {
     this.following = 0,
     this.posts = 0,
     this.savedPosts = const [],
+    this.createdPolls = const [],
+    this.votedPolls = const [],
     required this.createdAt,
     this.lastLoginAt,
   });
@@ -54,6 +57,8 @@ class UserModel {
       following: (data['following'] as num?)?.toInt() ?? 0,
       posts: (data['posts'] as num?)?.toInt() ?? 0,
       savedPosts: List<String>.from(data['savedPosts'] ?? []),
+      createdPolls: List<String>.from(data['createdPolls'] ?? []),
+      votedPolls: List<String>.from(data['votedPolls'] ?? []),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
     );
@@ -70,6 +75,8 @@ class UserModel {
       'following': following,
       'posts': posts,
       'savedPosts': savedPosts,
+      'createdPolls': createdPolls,
+      'votedPolls': votedPolls,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt':
           lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
@@ -81,11 +88,12 @@ class UserModel {
     String? name,
     String? profilePicture,
     String? bio,
-    String? website,
     int? followers,
     int? following,
     int? posts,
     List<String>? savedPosts,
+    List<String>? createdPolls,
+    List<String>? votedPolls,
     DateTime? lastLoginAt,
   }) {
     return UserModel(
@@ -98,12 +106,13 @@ class UserModel {
       following: following ?? this.following,
       posts: posts ?? this.posts,
       savedPosts: savedPosts ?? this.savedPosts,
+      createdPolls: createdPolls ?? this.createdPolls,
+      votedPolls: votedPolls ?? this.votedPolls,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
     );
   }
 
-  // Equality operator
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -116,7 +125,10 @@ class UserModel {
           bio == other.bio &&
           followers == other.followers &&
           following == other.following &&
-          posts == other.posts;
+          posts == other.posts &&
+          savedPosts == other.savedPosts &&
+          createdPolls == other.createdPolls &&
+          votedPolls == other.votedPolls;
 
   @override
   int get hashCode =>
@@ -127,9 +139,13 @@ class UserModel {
       bio.hashCode ^
       followers.hashCode ^
       following.hashCode ^
-      posts.hashCode;
+      posts.hashCode ^
+      savedPosts.hashCode ^
+      createdPolls.hashCode ^
+      votedPolls.hashCode;
 
   @override
-  String toString() =>
-      'UserModel(id: $id, email: $email, name: $name, followers: $followers, following: $following, posts: $posts)';
+  String toString() {
+    return 'UserModel{id: $id, email: $email, name: $name, profilePicture: $profilePicture, bio: $bio, followers: $followers, following: $following, posts: $posts, savedPosts: $savedPosts, createdPolls: $createdPolls, votedPolls: $votedPolls, createdAt: $createdAt, lastLoginAt: $lastLoginAt}';
+  }
 }

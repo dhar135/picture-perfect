@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:picture_perfect/src/core/utils/auth_result.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
+import 'package:picture_perfect/src/core/utils/result.dart';
+import 'package:picture_perfect/src/data/repositories/user_repository.dart';
+import 'package:provider/provider.dart';
 
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -27,6 +30,8 @@ class AuthViewModel extends ChangeNotifier {
           email: user.email ?? '',
           createdAt: DateTime.now(),
         );
+
+        AppLogger.info('User Info: ${currentUser?.toJson()}');
         _status = AuthStatus.authenticated;
       } else {
         AppLogger.info('User unauthenticated');
@@ -113,6 +118,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // Sign up Method
+  // In AuthViewModel
   Future<void> signUp(
       String email, String password, BuildContext context) async {
     AppLogger.info('Attempting to sign up with email: $email');
@@ -124,11 +130,28 @@ class AuthViewModel extends ChangeNotifier {
       final result =
           await _authRepository.signUpWithEmailAndPassword(email, password);
 
-      if (result is AuthSuccess) {
-        AppLogger.info('Sign up successful for email: $email');
-        _status = AuthStatus.authenticated;
-        if (context.mounted) {
-          _navigateAfterAuth(context, true);
+      if (result is AuthSuccess && context.mounted) {
+        // Get the Firebase user
+        final firebaseUser = result.user;
+
+        // Create user in Firestore using UserRepository
+        final userRepository = context.read<UserRepository>();
+        final userResult = await userRepository.createUser(firebaseUser!);
+
+        if (userResult is Success<UserModel>) {
+          AppLogger.info('Sign up successful for email: $email');
+          _currentUser = userResult.data;
+          _status = AuthStatus.authenticated;
+
+          if (context.mounted) {
+            _navigateAfterAuth(context, true);
+          }
+        } else if (userResult is Failure<UserModel>) {
+          // Handle Firestore user creation failure
+          AppLogger.warning(
+              'Failed to create user in Firestore: ${userResult.message}');
+          _status = AuthStatus.error;
+          _setError('Failed to complete user registration');
         }
       } else if (result is AuthFailure) {
         AppLogger.warning(
