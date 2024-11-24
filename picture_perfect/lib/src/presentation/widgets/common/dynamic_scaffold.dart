@@ -20,8 +20,10 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
     switch (location) {
       case '/home':
         return 0;
-      case '/profile':
+      case '/create_poll':
         return 1;
+      case '/profile':
+        return 2;
       default:
         return 0;
     }
@@ -67,6 +69,10 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
                     icon: const Icon(Icons.settings)),
               ],
             ));
+      case '/create_poll':
+        return AppBar(
+          title: const Text('Create Poll'),
+        );
       default:
         return AppBar(title: const Text('Picture Perfect'));
     }
@@ -78,8 +84,10 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
         context.go('/home');
         break;
       case 1:
-        context.go('/profile');
+        context.go('/create_poll');
         break;
+      case 2:
+        context.go('/profile');
     }
   }
 
@@ -98,6 +106,7 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: _buildDynamicAppBar(context),
       body: widget.child,
@@ -109,9 +118,13 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
               activeIcon: Icon(Icons.home),
               label: 'Home'),
           BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline),
+              activeIcon: Icon(Icons.add_circle),
+              label: 'Create Poll'),
+          BottomNavigationBarItem(
               icon: Icon(Icons.person_outlined),
               activeIcon: Icon(Icons.person),
-              label: 'Profile')
+              label: 'Profile'),
         ],
         currentIndex: _calculatedSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
