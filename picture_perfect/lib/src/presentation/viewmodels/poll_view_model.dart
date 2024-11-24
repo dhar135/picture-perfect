@@ -27,12 +27,10 @@ class PollViewModel extends ChangeNotifier {
   List<PollModel> get polls => _polls;
   List<PollModel> get trendingPolls => _trendingPolls;
 
-  PollViewModel({
-    required PollRepository pollRepository,
-  }) : _pollRepository = pollRepository;
+  PollViewModel(this._pollRepository);
 
   // Create new poll
-  Future<void> createPoll(
+  Future<bool> createPoll(
       {required String creatorId,
       required String title,
       String? description,
@@ -44,31 +42,41 @@ class PollViewModel extends ChangeNotifier {
       PollVotingType votingType = PollVotingType.nonAnonymous,
       DateTime? deadline,
       required PollStatus status}) async {
-    AppLogger.info('Creating new poll, $title for $creatorId');
-    _setState(PollViewState.loading);
+    try {
+      AppLogger.info('Creating new poll: Title:$title for user:$creatorId');
+      _setState(PollViewState.loading);
 
-    final result = await _pollRepository.createPoll(
-        creatorId: creatorId,
-        title: title,
-        description: description,
-        imageOne: imageOne,
-        imageTwo: imageTwo,
-        captionOne: captionOne,
-        captionTwo: captionTwo,
-        category: category,
-        votingType: votingType,
-        deadline: deadline,
-        status: status);
+      final result = await _pollRepository.createPoll(
+          creatorId: creatorId,
+          title: title,
+          description: description,
+          imageOne: imageOne,
+          imageTwo: imageTwo,
+          captionOne: captionOne,
+          captionTwo: captionTwo,
+          category: category,
+          votingType: votingType,
+          deadline: deadline,
+          status: status);
 
-    if (result is Success<PollModel>) {
-      _polls.insert(0, result.data);
-      _setState(PollViewState.success);
-      AppLogger.info('Successfully created poll, $title');
-      notifyListeners();
-    } else if (result is Failure<PollModel>) {
-      _setError(result.message);
+      if (result is Success<PollModel>) {
+        _polls.insert(0, result.data);
+        _setState(PollViewState.success);
+        AppLogger.info('Successfully created poll, $title');
+        notifyListeners();
+        return true;
+      } else if (result is Failure<PollModel>) {
+        _setError(result.message);
+        _setState(PollViewState.error);
+        AppLogger.error('Failed to create poll: ${result.message}');
+        return false;
+      }
+      return false;
+    } catch (e, stackTrace) {
+      AppLogger.error('Unexpected error creating poll:', e, stackTrace);
+      _setError('Unexpected error: $e');
       _setState(PollViewState.error);
-      AppLogger.error('Failed to create poll: ${result.message}');
+      return false;
     }
   }
 

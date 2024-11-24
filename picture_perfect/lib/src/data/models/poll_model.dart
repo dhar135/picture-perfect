@@ -92,7 +92,7 @@ class PollModel {
       'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
       'votes': votes,
       'totalVotes': totalVotes,
-      'status': status
+      'status': status.toString()
     };
   }
 
