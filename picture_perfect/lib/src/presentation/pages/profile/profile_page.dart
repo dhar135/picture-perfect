@@ -23,14 +23,6 @@ class _ProfilePageState extends State<ProfilePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    // Load current user's profile
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authViewModel = context.read<AuthViewModel>();
-      final userViewModel = context.read<UserViewModel>();
-      if (authViewModel.currentUser != null) {
-        userViewModel.loadUserProfile(authViewModel.currentUser!.id);
-      }
-    });
   }
 
   @override

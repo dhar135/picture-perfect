@@ -7,6 +7,7 @@ import 'package:picture_perfect/src/core/utils/auth_result.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/core/utils/result.dart';
 import 'package:picture_perfect/src/data/repositories/user_repository.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/models/user_model.dart';
@@ -91,9 +92,14 @@ class AuthViewModel extends ChangeNotifier {
       final result =
           await _authRepository.signInWithEmailAndPassword(email, password);
 
-      if (result is AuthSuccess) {
+      if (result is AuthSuccess && context.mounted) {
         AppLogger.info('Sign in successful for email: $email');
         _status = AuthStatus.authenticated;
+
+        final userViewModel = context.read<UserViewModel>();
+        // Load user Profile on sign in
+        await userViewModel.loadUserProfile(_currentUser!.id);
+
         if (context.mounted) {
           _navigateAfterAuth(context, true);
         }
@@ -140,7 +146,12 @@ class AuthViewModel extends ChangeNotifier {
           _status = AuthStatus.authenticated;
 
           if (context.mounted) {
-            _navigateAfterAuth(context, true);
+            await context
+                .read<UserViewModel>()
+                .loadUserProfile(_currentUser!.id);
+            if (context.mounted) {
+              _navigateAfterAuth(context, true);
+            }
           }
         } else if (userResult is Failure<UserModel>) {
           // Handle Firestore user creation failure

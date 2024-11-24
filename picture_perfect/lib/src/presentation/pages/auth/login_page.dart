@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
+import 'package:picture_perfect/src/presentation/widgets/common/app_logo.dart';
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_view_model.dart';
@@ -39,8 +40,7 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      //TODO: Add app logo
-
+                      const AppLogo(),
                       // App Name
                       Text(
                         'Picture Perfect',

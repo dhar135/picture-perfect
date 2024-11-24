@@ -29,10 +29,12 @@ import 'package:picture_perfect/firebase_options.dart';
 import 'package:picture_perfect/src/core/router/app_router.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
+import 'package:picture_perfect/src/data/repositories/poll_repository.dart';
 import 'package:picture_perfect/src/data/repositories/user_repository.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -55,6 +57,7 @@ void main() async {
 
   final authRepository = AuthRepository();
   final userRepository = UserRepository();
+  final pollRepository = PollRepository();
 
   runApp(
     MultiProvider(
@@ -64,6 +67,7 @@ void main() async {
             authRepository,
           ),
         ),
+        ChangeNotifierProvider(create: (_) => PollViewModel(pollRepository)),
         ChangeNotifierProvider(create: (_) => UserViewModel(userRepository)),
         Provider<UserRepository>(create: (_) => UserRepository())
       ],
