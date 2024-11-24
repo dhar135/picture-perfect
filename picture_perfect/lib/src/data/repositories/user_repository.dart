@@ -57,7 +57,6 @@ class UserRepository {
     required String userId,
     String? name,
     String? bio,
-    String? website,
   }) async {
     try {
       final userRef = _firestore.collection(collection).doc(userId);
@@ -65,7 +64,6 @@ class UserRepository {
       final updates = <String, dynamic>{
         if (name != null) 'name': name,
         if (bio != null) 'bio': bio,
-        if (website != null) 'website': website,
         'lastUpdatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -91,17 +89,30 @@ class UserRepository {
         return const Failure(message: 'Image file does not exist');
       }
 
-      final storageRef = _storage.ref().child('profile_pictures/$userId.jpg');
+      // Create unique filename using timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = '$timestamp.jpg';
+
+      // Updated path structure: profile_pictures/userId/filename
+      final storageRef = _storage
+          .ref()
+          .child('profile_pictures')
+          .child(userId)
+          .child(fileName);
 
       // Upload with metadata
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
-        customMetadata: {'userId': userId},
+        customMetadata: {
+          'userId': userId,
+          'uploadTime': DateTime.now().toIso8601String(),
+        },
       );
 
       await storageRef.putFile(imageFile, metadata);
       final imageUrl = await storageRef.getDownloadURL();
 
+      // Update user profile with new image URL
       await _firestore.collection(collection).doc(userId).update({
         'profilePicture': imageUrl,
         'lastUpdatedAt': FieldValue.serverTimestamp(),
@@ -109,7 +120,7 @@ class UserRepository {
 
       return Success(imageUrl);
     } catch (e) {
-      AppLogger.info('Profile picture upload error: $e');
+      AppLogger.error('Profile picture upload error: $e');
       return Failure(
         message: 'Failed to update profile picture',
         error: e,
