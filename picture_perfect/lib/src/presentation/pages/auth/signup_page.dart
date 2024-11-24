@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/core/theme/app_theme.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/widgets/common/app_logo.dart';
 import 'package:provider/provider.dart';
 
 class SignupPage extends StatefulWidget {
@@ -48,8 +49,7 @@ class _SignupPageState extends State<SignupPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  //TODO: Add app logo
-
+                  const AppLogo(),
                   // App Name
                   Text(
                     'Picture Perfect',

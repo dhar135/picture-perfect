@@ -92,15 +92,15 @@ class AuthViewModel extends ChangeNotifier {
       final result =
           await _authRepository.signInWithEmailAndPassword(email, password);
 
-      if (result is AuthSuccess) {
+      if (result is AuthSuccess && context.mounted) {
         AppLogger.info('Sign in successful for email: $email');
         _status = AuthStatus.authenticated;
 
         final userViewModel = context.read<UserViewModel>();
+        // Load user Profile on sign in
+        await userViewModel.loadUserProfile(_currentUser!.id);
 
         if (context.mounted) {
-          // Load user Profile on sign in
-          await userViewModel.loadUserProfile(_currentUser!.id);
           _navigateAfterAuth(context, true);
         }
       } else if (result is AuthFailure) {
@@ -149,7 +149,9 @@ class AuthViewModel extends ChangeNotifier {
             await context
                 .read<UserViewModel>()
                 .loadUserProfile(_currentUser!.id);
-            _navigateAfterAuth(context, true);
+            if (context.mounted) {
+              _navigateAfterAuth(context, true);
+            }
           }
         } else if (userResult is Failure<UserModel>) {
           // Handle Firestore user creation failure

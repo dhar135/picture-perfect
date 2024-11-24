@@ -626,7 +626,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
       lastDate: now.add(const Duration(days: 30)), // Max 30 days
     );
 
-    if (pickedDate != null) {
+    if (pickedDate != null && mounted) {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),

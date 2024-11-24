@@ -195,27 +195,6 @@ class PollViewModel extends ChangeNotifier {
     return null;
   }
 
-  // Enhanced error handling for image upload
-  Future<Result<String>> _uploadImageWithRetry(File imageFile, String userId,
-      {int maxRetries = 3}) async {
-    for (int i = 0; i < maxRetries; i++) {
-      try {
-        final String imageUrl =
-            await _pollRepository.uploadImage(imageFile, userId);
-        return Success(imageUrl);
-      } catch (e) {
-        if (i == maxRetries - 1) {
-          return Failure(
-              message: 'Failed to upload image after $maxRetries attempts',
-              error: e);
-        }
-        await Future.delayed(
-            Duration(seconds: 1 * (i + 1))); // Exponential backoff
-      }
-    }
-    return const Failure(message: 'Unexpected error during image upload');
-  }
-
   // Helper methods
   void _setState(PollViewState newState) {
     _state = newState;
