@@ -64,7 +64,6 @@ class UserViewModel extends ChangeNotifier {
       userId: userId,
       name: name,
       bio: bio,
-      website: website,
     );
 
     if (result is Success<UserModel>) {
