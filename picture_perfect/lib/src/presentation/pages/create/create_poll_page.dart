@@ -46,6 +46,13 @@ class _CreatePollPageState extends State<CreatePollPage> {
 
   // Handle Step changes
   void _onStepContinue() {
+    if (!_validateCurrentStep()) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Please complete all required fields'),
+        backgroundColor: Colors.red,
+      ));
+      return;
+    }
     final isLastStep = _currentStep == 3;
 
     if (isLastStep) {
@@ -76,6 +83,27 @@ class _CreatePollPageState extends State<CreatePollPage> {
                 currentStep: _currentStep,
                 onStepContinue: _onStepContinue,
                 onStepCancel: _onStepCancel,
+                controlsBuilder:
+                    (BuildContext context, ControlsDetails details) {
+                  // Don't show the default buttons on the last step.
+                  if (_currentStep == 3) {
+                    return Container();
+                  }
+
+                  return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: Row(
+                        children: [
+                          ElevatedButton(
+                              onPressed: details.onStepContinue,
+                              child: const Text('Continue')),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                              onPressed: details.onStepCancel,
+                              child: const Text('Cancel'))
+                        ],
+                      ));
+                },
                 steps: [
                   _buildBasicInfoStep(),
                   _buildImagesStep(),
@@ -119,7 +147,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
           ),
         ),
         isActive: _currentStep >= 0,
-        state: _validateBasicInfo() ? StepState.complete : StepState.indexed);
+        state: _validateCurrentStep() ? StepState.complete : StepState.indexed);
   }
 
   Step _buildImagesStep() {
@@ -174,7 +202,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
         ),
       ),
       isActive: _currentStep >= 1,
-      state: _validateImagesStep() ? StepState.complete : StepState.indexed,
+      state: _validateCurrentStep() ? StepState.complete : StepState.indexed,
     );
   }
 
@@ -316,7 +344,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
         ),
       ),
       isActive: _currentStep >= 2,
-      state: _validateSettingsStep() ? StepState.complete : StepState.indexed,
+      state: _validateCurrentStep() ? StepState.complete : StepState.indexed,
     );
   }
 
@@ -429,6 +457,11 @@ class _CreatePollPageState extends State<CreatePollPage> {
             // Submit Button
             ElevatedButton(
                 onPressed: _isLoading ? null : _submitPoll,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  backgroundColor: theme.colorScheme.secondary,
+                  foregroundColor: theme.scaffoldBackgroundColor,
+                ),
                 child: _isLoading
                     ? const SizedBox(
                         height: 20,
@@ -438,7 +471,8 @@ class _CreatePollPageState extends State<CreatePollPage> {
                     : const Text('Create Poll'))
           ],
         ),
-        isActive: _currentStep >= 3);
+        isActive: _currentStep >= 3,
+        state: _validateCurrentStep() ? StepState.complete : StepState.indexed);
   }
 
   /// Widgets Below
@@ -682,23 +716,28 @@ class _CreatePollPageState extends State<CreatePollPage> {
   }
 
   // Validation
-  bool _validateImagesStep() {
-    return _imageOne != null && _imageTwo != null;
-  }
-
-  bool _validateSettingsStep() {
-    return _formData.category != null;
-  }
-
-  bool _validateBasicInfo() {
-    return _formData.title != null;
-  }
 
   bool _validateAll() {
     return _titleController.text.isNotEmpty &&
         _imageOne != null &&
         _imageTwo != null &&
         _formData.category != null;
+  }
+
+  bool _validateCurrentStep() {
+    switch (_currentStep) {
+      case 0: // Basic Info Step
+        return _titleController.text.isNotEmpty;
+
+      case 1: // Images Step
+        return _imageTwo != null && _imageTwo != null;
+
+      case 2: // Settings step
+        return _formData.category != null;
+
+      default:
+        return true;
+    }
   }
 }
 
