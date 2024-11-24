@@ -7,6 +7,7 @@ import 'package:picture_perfect/src/core/utils/auth_result.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/core/utils/result.dart';
 import 'package:picture_perfect/src/data/repositories/user_repository.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
 
 import '../../data/models/user_model.dart';
@@ -94,7 +95,12 @@ class AuthViewModel extends ChangeNotifier {
       if (result is AuthSuccess) {
         AppLogger.info('Sign in successful for email: $email');
         _status = AuthStatus.authenticated;
+
+        final userViewModel = context.read<UserViewModel>();
+
         if (context.mounted) {
+          // Load user Profile on sign in
+          await userViewModel.loadUserProfile(_currentUser!.id);
           _navigateAfterAuth(context, true);
         }
       } else if (result is AuthFailure) {
@@ -140,6 +146,9 @@ class AuthViewModel extends ChangeNotifier {
           _status = AuthStatus.authenticated;
 
           if (context.mounted) {
+            await context
+                .read<UserViewModel>()
+                .loadUserProfile(_currentUser!.id);
             _navigateAfterAuth(context, true);
           }
         } else if (userResult is Failure<UserModel>) {
