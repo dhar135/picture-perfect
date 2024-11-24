@@ -46,8 +46,19 @@ class AppRouter {
             ),
           ),
           GoRoute(
-            path: '/create',
-            builder: (context, state) => const CreatePollPage(),
+            path: '/create_poll',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              name: state.matchedLocation,
+              key: state.pageKey,
+              child: CreatePollPage(),
+              transitionsBuilder: (BuildContext context,
+                  Animation<double> animation,
+                  Animation<double> secondaryAnimation,
+                  Widget child) {
+                return fadeTransition(
+                    context, animation, secondaryAnimation, child);
+              },
+            ),
           ),
           GoRoute(
             path: '/explore',
