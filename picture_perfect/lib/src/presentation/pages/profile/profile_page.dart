@@ -2,11 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold.dart';
 import 'package:provider/provider.dart';
 
 import '../../../data/models/user_model.dart';
 import '../../viewmodels/user_view_model.dart';
+import '../../widgets/poll/poll_card.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -156,7 +158,7 @@ class _StatsRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       mainAxisSize: MainAxisSize.max,
       children: [
-        _buildStatColumn(context, 'Posts', user.posts.toString()),
+        _buildStatColumn(context, 'Posts', user.createdPolls.length.toString()),
         _buildStatColumn(context, 'Followers', user.followers.toString()),
         _buildStatColumn(context, 'Following', user.following.toString()),
       ],
@@ -215,10 +217,16 @@ class _CreatedPollsTab extends StatelessWidget {
       return const Center(child: Text('No created polls yet'));
     }
 
-    return ListView.builder(
-      itemCount: polls.length,
-      itemBuilder: (context, index) {
-        return _PollCard(pollId: polls[index]);
+    return Consumer<PollViewModel>(
+      builder:
+          (BuildContext context, PollViewModel pollViewModel, Widget? child) {
+        return ListView.builder(
+          itemCount: polls.length,
+          itemBuilder: (context, index) {
+            final poll = pollViewModel.polls[index];
+            return PollCard(poll: poll);
+          },
+        );
       },
     );
   }

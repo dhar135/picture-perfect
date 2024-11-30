@@ -1,10 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 sealed class Result<T> {
   const Result();
 }
 
 final class Success<T> extends Result<T> {
   final T data;
-  const Success(this.data);
+  final DocumentSnapshot? lastDocument; // Added for pagination
+
+  const Success(this.data, {this.lastDocument}); // Updated constructor
 }
 
 final class Failure<T> extends Result<T> {

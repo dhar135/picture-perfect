@@ -122,6 +122,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
             children: [
               TextFormField(
                 controller: _titleController,
+                maxLength: 75,
                 decoration: const InputDecoration(
                     labelText: 'Title', hintText: 'Enter your poll title'),
                 validator: (value) {

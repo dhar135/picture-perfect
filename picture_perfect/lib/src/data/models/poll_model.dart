@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
 
 enum PollCategory { fashion, food, lifestyle, other }
 
@@ -48,40 +49,93 @@ class PollModel {
 
   // Create from Firestore document
   factory PollModel.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    try {
+      final data = doc.data() as Map<String, dynamic>;
 
-    return PollModel(
-      id: doc.id,
-      creatorId: data['creatorId'] as String,
-      title: data['title'] as String,
-      description: data['description'] as String,
-      imageOne: data['imageOne'] as String,
-      imageTwo: data['imageTwo'] as String,
-      captionOne: data['captionOne'] as String?,
-      captionTwo: data['captionTwo'] as String?,
-      category: PollCategory.values.firstWhere(
-        (e) => e.toString() == data['category'],
+      // Check required fields
+      if (data['creatorId'] == null ||
+          data['title'] == null ||
+          data['imageOne'] == null ||
+          data['imageTwo'] == null) {
+        throw FormatException(
+            'Document ${doc.id} is missing required fields: ${[
+          if (data['creatorId'] == null) 'creatorId',
+          if (data['title'] == null) 'title',
+          if (data['imageOne'] == null) 'imageOne',
+          if (data['imageTwo'] == null) 'imageTwo',
+        ].join(', ')}');
+      }
+
+      return PollModel(
+        id: doc.id,
+        creatorId: data['creatorId'].toString(),
+        title: data['title'].toString(),
+        description: data['description']?.toString(),
+        imageOne: data['imageOne'].toString(),
+        imageTwo: data['imageTwo'].toString(),
+        captionOne: data['captionOne']?.toString(),
+        captionTwo: data['captionTwo']?.toString(),
+        category: _categoryFromString(data['category']?.toString()),
+        votingType: _votingTypeFromString(data['votingType']?.toString()),
+        createdAt:
+            (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+        deadline: (data['deadline'] as Timestamp?)?.toDate(),
+        votes: (data['votes'] as Map<String, dynamic>?)
+                ?.map((key, value) => MapEntry(key, value.toString())) ??
+            {},
+        totalVotes: (data['totalVotes'] as num?)?.toInt() ?? 0,
+        status: _statusFromString(data['status']?.toString()),
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error('Error creating PollModel from document ${doc.id}: $e', e,
+          stackTrace);
+      rethrow;
+    }
+  }
+
+  // Helper methods for safer enum conversion
+  static PollCategory _categoryFromString(String? value) {
+    try {
+      return PollCategory.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
         orElse: () => PollCategory.other,
-      ),
-      votingType: PollVotingType.values.firstWhere(
-        (e) => e.toString() == data['votingType'],
+      );
+    } catch (_) {
+      return PollCategory.other;
+    }
+  }
+
+  static PollVotingType _votingTypeFromString(String? value) {
+    try {
+      return PollVotingType.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
         orElse: () => PollVotingType.nonAnonymous,
-      ),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      deadline: (data['deadline'] as Timestamp?)?.toDate(),
-      votes: Map<String, String>.from(data['votes'] ?? {}),
-      totalVotes: (data['totalVotes'] as num?)?.toInt() ?? 0,
-      status: PollStatus.values.firstWhere(
-        (e) => e.toString() == data['status'],
-        orElse: () => PollStatus.active, // default value
-      ),
-    );
+      );
+    } catch (_) {
+      return PollVotingType.nonAnonymous;
+    }
+  }
+
+  static PollStatus _statusFromString(String? value) {
+    try {
+      return PollStatus.values.firstWhere(
+        (e) =>
+            e.toString().split('.').last.toLowerCase() == value?.toLowerCase(),
+        orElse: () => PollStatus.active,
+      );
+    } catch (_) {
+      return PollStatus.active;
+    }
   }
 
   // Convert to JSON for Firestore
   Map<String, dynamic> toJson() {
     return {
       'creatorId': creatorId,
+      'title': title,
+      'description': description,
       'imageOne': imageOne,
       'imageTwo': imageTwo,
       'captionOne': captionOne,

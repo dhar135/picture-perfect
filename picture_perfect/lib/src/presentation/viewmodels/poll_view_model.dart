@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/core/utils/result.dart';
@@ -14,7 +15,7 @@ class PollViewModel extends ChangeNotifier {
   // State management
   PollViewState _state = PollViewState.initial;
   String? _errorMessage;
-  List<PollModel> _polls = [];
+  final List<PollModel> _polls = [];
   List<PollModel> _trendingPolls = [];
 
   // Draft Management
@@ -28,6 +29,9 @@ class PollViewModel extends ChangeNotifier {
   List<PollModel> get trendingPolls => _trendingPolls;
 
   PollViewModel(this._pollRepository);
+
+  DocumentSnapshot? _lastDocument;
+  bool _hasMorePolls = true;
 
   // Create new poll
   Future<bool> createPoll(
@@ -111,24 +115,39 @@ class PollViewModel extends ChangeNotifier {
     PollCategory? category,
     String? followedUserId,
     int limit = 20,
+    bool refresh = false,
   }) async {
-    AppLogger.info("Attempting to fetch polls.");
-    _setState(PollViewState.loading);
+    try {
+      if (refresh) {
+        _lastDocument = null;
+        _polls.clear();
+        _hasMorePolls = true;
+      }
 
-    final result = await _pollRepository.fetchPolls(
-      category: category,
-      followedUserId: followedUserId,
-      limit: limit,
-    );
+      if (!_hasMorePolls) return;
 
-    if (result is Success<List<PollModel>>) {
-      _polls = result.data;
-      _setState(PollViewState.success);
-      AppLogger.info("Successfully fetched polls");
-    } else if (result is Failure<List<PollModel>>) {
-      _setState(PollViewState.error);
-      _setError(result.message);
-      AppLogger.error("Failed fetching polls: $_errorMessage");
+      _setState(PollViewState.loading);
+
+      final result = await _pollRepository.fetchPolls(
+        category: category,
+        followedUserId: followedUserId,
+        limit: limit,
+        lastDocument: _lastDocument,
+      );
+
+      if (result is Success<List<PollModel>>) {
+        if (result.data.isEmpty) {
+          _hasMorePolls = false;
+        } else {
+          _polls.addAll(result.data);
+          _lastDocument = result.lastDocument;
+        }
+        _setState(PollViewState.success);
+      } else if (result is Failure<List<PollModel>>) {
+        _setError(result.message);
+      }
+    } catch (e) {
+      _setError(e.toString());
     }
   }
 
@@ -197,9 +216,11 @@ class PollViewModel extends ChangeNotifier {
 
   // Helper methods
   void _setState(PollViewState newState) {
-    _state = newState;
-    _errorMessage = null;
-    notifyListeners();
+    if (_state != newState) {
+      _state = newState;
+      _errorMessage = null;
+      notifyListeners();
+    }
   }
 
   void _setError(String message) {
