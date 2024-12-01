@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:picture_perfect/src/core/utils/image_picker_util.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 
 import '../../core/utils/result.dart';
@@ -26,8 +25,8 @@ class PollRepository {
       {required String creatorId,
       required String title,
       String? description,
-      required File imageOne,
-      required File imageTwo,
+      required ImageData imageOne,
+      required ImageData imageTwo,
       String? captionOne,
       String? captionTwo,
       PollCategory category = PollCategory.other,
@@ -36,8 +35,8 @@ class PollRepository {
       required PollStatus status}) async {
     try {
       // Upload images to Firebase Storage
-      final imageOneUrl = await uploadImage(imageOne, creatorId);
-      final imageTwoUrl = await uploadImage(imageTwo, creatorId);
+      final imageOneUrl = await uploadImageData(imageOne, creatorId);
+      final imageTwoUrl = await uploadImageData(imageTwo, creatorId);
 
       final pollData = PollModel(
           id: '', // Firestore will generate the ID
@@ -71,16 +70,19 @@ class PollRepository {
   }
 
   // Upload image to Firebase Storage
-  Future<String> uploadImage(File imageFile, String userId) async {
-    final storageRef = _storage.ref().child(
-        'poll_images/${DateTime.now().millisecondsSinceEpoch}_$userId.jpg');
+  Future<String> uploadImageData(ImageData imageData, String userId) async {
+    final String fileName =
+        '${DateTime.now().millisecondsSinceEpoch}_$userId.jpg';
+    final storageRef = _storage.ref().child('poll_images/$fileName');
 
-    final metadata = SettableMetadata(
-      contentType: 'image/jpeg',
-      customMetadata: {'userId': userId},
-    );
+    UploadTask uploadTask;
+    if (imageData.isWeb) {
+      uploadTask = storageRef.putData(imageData.data);
+    } else {
+      uploadTask = storageRef.putFile(imageData.data);
+    }
 
-    await storageRef.putFile(imageFile, metadata);
+    await uploadTask;
     return await storageRef.getDownloadURL();
   }
 

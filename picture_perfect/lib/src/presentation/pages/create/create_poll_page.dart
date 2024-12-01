@@ -30,8 +30,8 @@ class _CreatePollPageState extends State<CreatePollPage> {
   final _captionOneController = TextEditingController();
   final _captionTwoController = TextEditingController();
 
-  File? _imageOne;
-  File? _imageTwo;
+  ImageData? _imageOne;
+  ImageData? _imageTwo;
   bool _isLoading = false;
   DateTime? _deadline;
 
@@ -388,11 +388,17 @@ class _CreatePollPageState extends State<CreatePollPage> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: _imageOne != null
-                                  ? Image.file(
-                                      _imageOne!,
-                                      height: 150,
-                                      fit: BoxFit.cover,
-                                    )
+                                  ? _imageOne!.isWeb
+                                      ? Image.memory(
+                                          _imageOne!.data,
+                                          height: 150,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          _imageOne!.data,
+                                          height: 150,
+                                          fit: BoxFit.cover,
+                                        )
                                   : Container(
                                       height: 150,
                                       color: Colors.grey[300],
@@ -413,11 +419,17 @@ class _CreatePollPageState extends State<CreatePollPage> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: _imageTwo != null
-                                  ? Image.file(
-                                      _imageTwo!,
-                                      height: 150,
-                                      fit: BoxFit.cover,
-                                    )
+                                  ? _imageTwo!.isWeb
+                                      ? Image.memory(
+                                          _imageTwo!.data,
+                                          height: 150,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.file(
+                                          _imageTwo!.data,
+                                          height: 150,
+                                          fit: BoxFit.cover,
+                                        )
                                   : Container(
                                       height: 150,
                                       color: Colors.grey[300],
@@ -479,7 +491,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
   /// Widgets Below
   Widget _buildImageSelector(
     String label,
-    File? image,
+    ImageData? image,
     VoidCallback onTap,
     TextEditingController captionController,
   ) {
@@ -502,12 +514,19 @@ class _CreatePollPageState extends State<CreatePollPage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.file(
-                          image,
-                          height: 100,
-                          width: 100,
-                          fit: BoxFit.cover,
-                        ),
+                        child: image.isWeb
+                            ? Image.memory(
+                                image.data,
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.file(
+                                image.data,
+                                height: 100,
+                                width: 100,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close, color: Colors.red),
@@ -597,13 +616,25 @@ class _CreatePollPageState extends State<CreatePollPage> {
   }
 
   // Preview image
-  void _previewImage(File image) {
+  void _previewImage(ImageData image) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
         child: Stack(
           children: [
-            Image.file(image),
+            image.isWeb
+                ? Image.memory(
+                    image.data,
+                    height: 100,
+                    width: 100,
+                    fit: BoxFit.cover,
+                  )
+                : Image.file(
+                    image.data,
+                    height: 100,
+                    width: 100,
+                    fit: BoxFit.cover,
+                  ),
             Positioned(
               right: 8,
               top: 8,

@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/core/utils/image_picker_util.dart';
 
 import '../../core/utils/logger.dart';
 import '../../core/utils/result.dart';
@@ -86,14 +85,12 @@ class UserViewModel extends ChangeNotifier {
   // Update profile picture
   Future<bool> updateProfilePicture({
     required String userId,
-    required File imageFile,
+    required ImageData imageFile,
   }) async {
     AppLogger.info('Updating profile picture for userId: $userId');
     _setLoading(true);
     final result = await _userRepository.updateProfilePicture(
-      userId: userId,
-      imageFile: imageFile,
-    );
+        userId: userId, imageData: imageFile);
 
     if (result is Success<String>) {
       await loadUserProfile(userId);
@@ -176,6 +173,19 @@ class UserViewModel extends ChangeNotifier {
       AppLogger.error('Failed to update user stats', result.message);
     } else {
       AppLogger.info('Successfully updated stats for userId: $userId');
+    }
+  }
+
+  Future<UserModel?> getUserById(String userId) async {
+    try {
+      final result = await _userRepository.getUserById(userId);
+      if (result is Success<UserModel>) {
+        return result.data;
+      }
+      return null;
+    } catch (e) {
+      AppLogger.error('Error fetching user: $e');
+      return null;
     }
   }
 

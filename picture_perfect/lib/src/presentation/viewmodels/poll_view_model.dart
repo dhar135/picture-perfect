@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/core/utils/image_picker_util.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/core/utils/result.dart';
 import 'package:picture_perfect/src/data/models/poll_model.dart';
@@ -38,8 +39,8 @@ class PollViewModel extends ChangeNotifier {
       {required String creatorId,
       required String title,
       String? description,
-      required File imageOne,
-      required File imageTwo,
+      required ImageData imageOne,
+      required ImageData imageTwo,
       String? captionOne,
       String? captionTwo,
       PollCategory category = PollCategory.other,

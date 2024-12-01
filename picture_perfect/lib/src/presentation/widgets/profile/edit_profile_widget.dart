@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +20,7 @@ class EditProfileSheet extends StatefulWidget {
 class _EditProfileSheetState extends State<EditProfileSheet> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
-  File? _imageFile;
+  ImageData? _imageFile;
   bool _isUploading = false;
 
   @override
@@ -40,7 +38,7 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
   }
 
   void _handleImagePick() async {
-    final File? pickedImage =
+    final ImageData? pickedImage =
         await ImagePickerUtil.showImagePickerOptions(context);
 
     if (pickedImage != null) {
@@ -137,7 +135,9 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
                   CircleAvatar(
                     radius: 50,
                     backgroundImage: _imageFile != null
-                        ? FileImage(_imageFile!) as ImageProvider
+                        ? _imageFile!.isWeb
+                            ? MemoryImage(_imageFile!.data) as ImageProvider
+                            : FileImage(_imageFile!.data)
                         : widget.user.profilePicture != null
                             ? CachedNetworkImageProvider(
                                 widget.user.profilePicture!)
