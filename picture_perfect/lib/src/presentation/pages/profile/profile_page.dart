@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold.dart';
@@ -11,7 +10,8 @@ import '../../viewmodels/user_view_model.dart';
 import '../../widgets/poll/poll_card.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final String? userId;
+  const ProfilePage({super.key, this.userId});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -20,6 +20,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -35,79 +36,121 @@ class _ProfilePageState extends State<ProfilePage>
 
   @override
   Widget build(BuildContext context) {
-    final userViewModel = context.watch<UserViewModel>();
     final authViewModel = context.watch<AuthViewModel>();
     final currentUserId = authViewModel.currentUser!.id;
+    final targetUserId = widget.userId ?? currentUserId;
+    final isCurrentUser = targetUserId == currentUserId;
 
-    AppLogger.info('Current User ID: $currentUserId');
-    AppLogger.info('Loaded user data: ${userViewModel.user?.toString()}');
+    return FutureBuilder(
+        future: context.read<UserViewModel>().getUserById(targetUserId),
+        builder: (context, AsyncSnapshot<UserModel?> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting ||
+              _isLoading) {
+            return const DynamicScaffold(
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-    // If user is null or loading, show loading or error state
-    if (userViewModel.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+          if (snapshot.hasError) {
+            return DynamicScaffold(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Error loading profile: ${snapshot.error}'),
+                    ElevatedButton(
+                      onPressed: () => setState(() {}),
+                      child: Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
-    if (userViewModel.error != null) {
-      return Center(child: Text('Error: ${userViewModel.error}'));
-    }
+          final user = snapshot.data!;
 
-    // Use the user from the ViewModel instead of a stream
-    final user = userViewModel.user;
-
-    if (user == null) {
-      return const Center(child: Text('No user data available'));
-    }
-
-    // Verify the loaded user matches current user
-    if (user.id != currentUserId) {
-      AppLogger.info('User ID mismatch: ${user.id} != $currentUserId');
-      return const Center(child: Text('User data mismatch'));
-    }
-
-    return DynamicScaffold(
-      child: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _ProfileHeader(user: user),
-                const SizedBox(height: 20),
-                _StatsRow(user: user),
-                const SizedBox(height: 20),
+          return DynamicScaffold(
+            child: NestedScrollView(
+              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      _ProfileHeader(
+                        user: user,
+                        isCurrentUser: isCurrentUser,
+                        onFollowTap: isCurrentUser
+                            ? null
+                            : () => _handleFollowTap(context, user.id),
+                      ),
+                      const SizedBox(height: 20),
+                      _StatsRow(user: user),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+                SliverPersistentHeader(
+                  delegate: _SliverAppBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      tabs: const [
+                        Tab(text: 'Created'),
+                        Tab(text: 'Saved'),
+                        Tab(text: 'Voted'),
+                      ],
+                    ),
+                  ),
+                  pinned: true,
+                ),
               ],
-            ),
-          ),
-          SliverPersistentHeader(
-            delegate: _SliverAppBarDelegate(
-              TabBar(
+              body: TabBarView(
                 controller: _tabController,
-                tabs: const [
-                  Tab(text: 'Created'),
-                  Tab(text: 'Saved'),
-                  Tab(text: 'Voted'),
+                children: [
+                  _CreatedPollsTab(polls: user.createdPolls),
+                  _SavedPollsTab(polls: user.savedPosts),
+                  _VotedPollsTab(polls: user.votedPolls),
                 ],
               ),
             ),
-            pinned: true,
-          ),
-        ],
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _CreatedPollsTab(polls: user.createdPolls),
-            _SavedPollsTab(polls: user.savedPosts),
-            _VotedPollsTab(polls: user.votedPolls),
-          ],
-        ),
-      ),
-    );
+          );
+        });
+  }
+
+  Future<void> _handleFollowTap(BuildContext context, String userId) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final userViewModel = context.read<UserViewModel>();
+      final currentUserId = context.read<AuthViewModel>().currentUser!.id;
+
+      // await userViewModel.toggleFollow(
+      //   followerId: currentUserId,
+      //   followingId: userId,
+      // );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Successfully updated follow status')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update follow status: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 }
 
 class _ProfileHeader extends StatelessWidget {
   final UserModel user;
+  final bool isCurrentUser;
+  final VoidCallback? onFollowTap;
 
-  const _ProfileHeader({required this.user});
+  const _ProfileHeader({
+    required this.user,
+    required this.isCurrentUser,
+    this.onFollowTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +169,15 @@ class _ProfileHeader extends StatelessWidget {
                     ? const Icon(Icons.person, size: 50)
                     : null,
               ),
+              if (isCurrentUser)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _showEditProfile(context),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -141,9 +193,21 @@ class _ProfileHeader extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+          if (!isCurrentUser) ...[
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: onFollowTap,
+              child: Text(
+                  'Follow'), // TODO: You'll need to change this based on follow status
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  void _showEditProfile(BuildContext context) {
+    // TODO: Implement your edit profile logic here
   }
 }
 

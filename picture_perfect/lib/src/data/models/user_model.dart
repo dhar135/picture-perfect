@@ -10,9 +10,9 @@ class UserModel {
   final int followers;
   final int following;
   final int posts;
-  final List<String> savedPosts; // IDs of saved polls or posts
-  final List<String> createdPolls; // IDs of polls created by the user
-  final List<String> votedPolls; // IDs of polls the user has voted on
+  final List<String> savedPosts;
+  final List<String> createdPolls;
+  final List<String> votedPolls;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
 
