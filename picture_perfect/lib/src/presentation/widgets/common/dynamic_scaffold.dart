@@ -106,27 +106,62 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if screen width is large enough for side nav
+    final isDesktop = MediaQuery.of(context).size.width > 768;
+
+    if (isDesktop) {
+      return Row(
+        children: [
+          // Side Navigation
+          NavigationRail(
+            selectedIndex: _calculatedSelectedIndex(context),
+            onDestinationSelected: (index) => _onItemTapped(context, index),
+            destinations: const [
+              NavigationRailDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: Text('Home'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.add_circle_outline),
+                selectedIcon: Icon(Icons.add_circle),
+                label: Text('Create'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: Text('Profile'),
+              ),
+            ],
+          ),
+          // Main Content
+          Expanded(
+            child: Scaffold(
+              appBar: _buildDynamicAppBar(context),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: 600),
+                  child: widget.child,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Mobile layout
     return Scaffold(
       appBar: _buildDynamicAppBar(context),
       body: widget.child,
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              activeIcon: Icon(Icons.add_circle),
-              label: 'Create Poll'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.person_outlined),
-              activeIcon: Icon(Icons.person),
-              label: 'Profile'),
-        ],
         currentIndex: _calculatedSelectedIndex(context),
         onTap: (index) => _onItemTapped(context, index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Create'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
