@@ -85,26 +85,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.detached) {
-      // Sign out when app is closed
-      context.read<AuthViewModel>().signOut(context);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Picture Perfect',

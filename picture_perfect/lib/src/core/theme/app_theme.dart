@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   // Gradient colors
@@ -56,7 +57,8 @@ class AppTheme {
 
     // AppBar Theme
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.transparent,
+      systemOverlayStyle: SystemUiOverlayStyle.light,
+      backgroundColor: Colors.black12,
       elevation: 0,
       titleTextStyle: const TextStyle(
         fontSize: 28,
@@ -170,6 +172,7 @@ class AppTheme {
 
     // AppBar Theme
     appBarTheme: AppBarTheme(
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
       backgroundColor: Colors.transparent,
       elevation: 0,
       titleTextStyle: const TextStyle(

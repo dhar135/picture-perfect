@@ -1,7 +1,7 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:picture_perfect/src/core/utils/image_picker_util.dart';
+import 'package:picture_perfect/src/core/utils/logger.dart';
 
 import '../../core/utils/result.dart';
 import '../models/poll_model.dart';
@@ -25,8 +25,8 @@ class PollRepository {
       {required String creatorId,
       required String title,
       String? description,
-      required File imageOne,
-      required File imageTwo,
+      required ImageData imageOne,
+      required ImageData imageTwo,
       String? captionOne,
       String? captionTwo,
       PollCategory category = PollCategory.other,
@@ -35,8 +35,8 @@ class PollRepository {
       required PollStatus status}) async {
     try {
       // Upload images to Firebase Storage
-      final imageOneUrl = await uploadImage(imageOne, creatorId);
-      final imageTwoUrl = await uploadImage(imageTwo, creatorId);
+      final imageOneUrl = await uploadImageData(imageOne, creatorId);
+      final imageTwoUrl = await uploadImageData(imageTwo, creatorId);
 
       final pollData = PollModel(
           id: '', // Firestore will generate the ID
@@ -70,16 +70,19 @@ class PollRepository {
   }
 
   // Upload image to Firebase Storage
-  Future<String> uploadImage(File imageFile, String userId) async {
-    final storageRef = _storage.ref().child(
-        'poll_images/${DateTime.now().millisecondsSinceEpoch}_$userId.jpg');
+  Future<String> uploadImageData(ImageData imageData, String userId) async {
+    final String fileName =
+        '${DateTime.now().millisecondsSinceEpoch}_$userId.jpg';
+    final storageRef = _storage.ref().child('poll_images/$fileName');
 
-    final metadata = SettableMetadata(
-      contentType: 'image/jpeg',
-      customMetadata: {'userId': userId},
-    );
+    UploadTask uploadTask;
+    if (imageData.isWeb) {
+      uploadTask = storageRef.putData(imageData.data);
+    } else {
+      uploadTask = storageRef.putFile(imageData.data);
+    }
 
-    await storageRef.putFile(imageFile, metadata);
+    await uploadTask;
     return await storageRef.getDownloadURL();
   }
 
@@ -139,33 +142,55 @@ class PollRepository {
     DocumentSnapshot? lastDocument,
   }) async {
     try {
+      AppLogger.debug('Fetching polls with params: '
+          'category: $category, '
+          'followedUserId: $followedUserId, '
+          'limit: $limit');
+
       Query query = _firestore.collection(pollCollection);
 
-      // Apply category filter if provided
       if (category != null) {
-        query = query.where('category', isEqualTo: category.toString());
+        query = query.where('category',
+            isEqualTo: category.toString().split('.').last);
       }
 
-      // Apply followed users filter if provided
-      if (followedUserId != null) {
-        query = query.where('creatorId', isEqualTo: followedUserId);
-      }
-
-      // Order and limit results
       query = query.orderBy('createdAt', descending: true).limit(limit);
 
-      // Implement pagination if last document is provided
       if (lastDocument != null) {
         query = query.startAfterDocument(lastDocument);
       }
 
       final snapshot = await query.get();
-      final polls =
-          snapshot.docs.map((doc) => PollModel.fromDocument(doc)).toList();
+      AppLogger.debug('Fetched ${snapshot.docs.length} documents');
 
-      return Success(polls);
-    } catch (e) {
-      return Failure(message: 'Failed to fetch polls', error: e);
+      final polls = <PollModel>[];
+      List<String> invalidDocs = [];
+
+      for (var doc in snapshot.docs) {
+        try {
+          final poll = PollModel.fromDocument(doc);
+          polls.add(poll);
+        } catch (e) {
+          AppLogger.error('Invalid poll document found: ${doc.id}', e);
+          invalidDocs.add(doc.id);
+          // Maybe you want to delete or fix invalid documents
+          // await _handleInvalidDocument(doc.id);
+          continue;
+        }
+      }
+
+      if (invalidDocs.isNotEmpty) {
+        AppLogger.warning(
+            'Found ${invalidDocs.length} invalid poll documents: ${invalidDocs.join(", ")}');
+      }
+
+      return Success(
+        polls,
+        lastDocument: snapshot.docs.isNotEmpty ? snapshot.docs.last : null,
+      );
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to fetch polls', e, stackTrace);
+      return Failure(message: 'Failed to fetch polls: ${e.toString()}');
     }
   }
 
@@ -272,7 +297,8 @@ class PollRepository {
   }
 
   // Batch create polls
-  Future<Result<List<PollModel>>> createPolls(List<Map<String, dynamic>> pollsData) async {
+  Future<Result<List<PollModel>>> createPolls(
+      List<Map<String, dynamic>> pollsData) async {
     try {
       final batch = _firestore.batch();
       final polls = <PollModel>[];
@@ -280,22 +306,21 @@ class PollRepository {
       for (var pollData in pollsData) {
         final pollRef = _firestore.collection(pollCollection).doc();
         final poll = PollModel(
-          id: pollRef.id,
-          creatorId: pollData['creatorId'],
-          title: pollData['title'],
-          description: pollData['description'],
-          imageOne: pollData['imageOne'],
-          imageTwo: pollData['imageTwo'],
-          captionOne: pollData['captionOne'],
-          captionTwo: pollData['captionTwo'],
-          category: pollData['category'],
-          votingType: pollData['votingType'],
-          createdAt: pollData['createdAt'],
-          deadline: pollData['deadline'],
-          votes: pollData['votes'],
-          totalVotes: pollData['totalVotes'],
-          status: pollData['status']
-        );
+            id: pollRef.id,
+            creatorId: pollData['creatorId'],
+            title: pollData['title'],
+            description: pollData['description'],
+            imageOne: pollData['imageOne'],
+            imageTwo: pollData['imageTwo'],
+            captionOne: pollData['captionOne'],
+            captionTwo: pollData['captionTwo'],
+            category: pollData['category'],
+            votingType: pollData['votingType'],
+            createdAt: pollData['createdAt'],
+            deadline: pollData['deadline'],
+            votes: pollData['votes'],
+            totalVotes: pollData['totalVotes'],
+            status: pollData['status']);
         batch.set(pollRef, poll.toJson());
         polls.add(poll);
       }
@@ -306,4 +331,3 @@ class PollRepository {
     }
   }
 }
-

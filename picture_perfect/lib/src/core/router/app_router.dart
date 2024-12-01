@@ -79,6 +79,23 @@ class AppRouter {
               },
             ),
           ),
+          GoRoute(
+              path: '/profile/:userId',
+              pageBuilder: (context, state) {
+                final userId = state.pathParameters['userId'];
+                return CustomTransitionPage(
+                  name: state.matchedLocation,
+                  key: state.pageKey,
+                  child: ProfilePage(userId: userId),
+                  transitionsBuilder: (BuildContext context,
+                      Animation<double> animation,
+                      Animation<double> secondaryAnimation,
+                      Widget child) {
+                    return fadeTransition(
+                        context, animation, secondaryAnimation, child);
+                  },
+                );
+              }),
         ],
       ),
     ],

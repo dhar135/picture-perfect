@@ -1,11 +1,10 @@
 // lib/data/repositories/user_repository.dart
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 
+import '../../core/utils/image_picker_util.dart';
 import '../../core/utils/result.dart';
 import '../models/user_model.dart';
 
@@ -82,25 +81,21 @@ class UserRepository {
   // Update profile picture
   Future<Result<String>> updateProfilePicture({
     required String userId,
-    required File imageFile,
+    required ImageData imageData,
   }) async {
     try {
-      if (!await imageFile.exists()) {
+      if (!imageData.isWeb && !await imageData.data.exists()) {
         return const Failure(message: 'Image file does not exist');
       }
 
-      // Create unique filename using timestamp
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = '$timestamp.jpg';
-
-      // Updated path structure: profile_pictures/userId/filename
       final storageRef = _storage
           .ref()
           .child('profile_pictures')
           .child(userId)
           .child(fileName);
 
-      // Upload with metadata
       final metadata = SettableMetadata(
         contentType: 'image/jpeg',
         customMetadata: {
@@ -109,10 +104,13 @@ class UserRepository {
         },
       );
 
-      await storageRef.putFile(imageFile, metadata);
-      final imageUrl = await storageRef.getDownloadURL();
+      if (imageData.isWeb) {
+        await storageRef.putData(imageData.data, metadata);
+      } else {
+        await storageRef.putFile(imageData.data, metadata);
+      }
 
-      // Update user profile with new image URL
+      final imageUrl = await storageRef.getDownloadURL();
       await _firestore.collection(collection).doc(userId).update({
         'profilePicture': imageUrl,
         'lastUpdatedAt': FieldValue.serverTimestamp(),
@@ -121,10 +119,7 @@ class UserRepository {
       return Success(imageUrl);
     } catch (e) {
       AppLogger.error('Profile picture upload error: $e');
-      return Failure(
-        message: 'Failed to update profile picture',
-        error: e,
-      );
+      return Failure(message: 'Failed to update profile picture', error: e);
     }
   }
 
