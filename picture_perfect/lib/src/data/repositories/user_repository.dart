@@ -161,6 +161,8 @@ class UserRepository {
     try {
       final userRef = _firestore.collection(collection).doc(userId);
 
+      AppLogger.info('DB Operation - ${save ? 'Adding' : 'Removing'} pollId: $pollId');
+      
       if (save) {
         await userRef.update({
           'savedPosts': FieldValue.arrayUnion([pollId]),
@@ -173,6 +175,7 @@ class UserRepository {
 
       return const Success(null);
     } catch (e) {
+      AppLogger.error('Toggle save failed:', e);
       return Failure(
         message: 'Failed to update saved polls',
         error: e,
