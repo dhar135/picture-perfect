@@ -241,4 +241,13 @@ class PollViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<PollModel?> getPollById(String pollId) async {
+    try {
+      return await _pollRepository.getPollById(pollId);
+    } catch (e) {
+      AppLogger.error('Error fetching poll by ID: $e');
+      return null;
+    }
+  }
 }

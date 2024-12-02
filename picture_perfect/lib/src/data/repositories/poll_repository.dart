@@ -330,4 +330,17 @@ class PollRepository {
       return Failure(message: 'Failed to create polls', error: e);
     }
   }
+
+  Future<PollModel?> getPollById(String pollId) async {
+    try {
+      final doc = await _firestore.collection('polls').doc(pollId).get();
+      if (doc.exists) {
+        return PollModel.fromDocument(doc);
+      }
+      return null;
+    } catch (e) {
+      print('Error in getPollById: $e');
+      return null;
+    }
+  }
 }
