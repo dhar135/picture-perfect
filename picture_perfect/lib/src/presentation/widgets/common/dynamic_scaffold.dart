@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/data/models/user_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
-import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/profile/edit_profile_widget.dart';
 import 'package:picture_perfect/src/presentation/widgets/profile/profile_settings_widget.dart';
 import 'package:provider/provider.dart';
