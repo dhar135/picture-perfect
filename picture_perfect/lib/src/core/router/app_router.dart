@@ -4,6 +4,7 @@ import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/signup_page.dart';
+import 'package:picture_perfect/src/presentation/pages/auth/splash_page.dart';
 import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.dart';
 import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
 import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
@@ -14,7 +15,12 @@ import 'package:provider/provider.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
+    initialLocation: '/splash',
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/',
         builder: (context, state) => const AuthWrapper(),
@@ -124,6 +130,12 @@ class AppRouter {
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isInitialRoute = state.matchedLocation == '/';
+      final isSplashRoute = state.matchedLocation == '/splash';
+
+      // Don't redirect if on splash page
+      if (isSplashRoute) {
+        return null;
+      }
 
       // If not authenticated and trying to access protected route
       if (!isAuthenticated && !isAuthRoute && !isInitialRoute) {
