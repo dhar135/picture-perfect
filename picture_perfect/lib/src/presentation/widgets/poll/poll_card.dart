@@ -285,6 +285,55 @@ class _PollCardState extends State<PollCard> {
   }
 
   void _handleReport(BuildContext context) {
-    // TODO: Implement report functionality
+    String? selectedReason;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Poll'),
+        content: StatefulBuilder(
+          builder: (context, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Please select a reason for reporting:'),
+              const SizedBox(height: 16),
+              ...[
+                'Inappropriate content',
+                'Misleading/Harmful',
+                'Copyright/Ownership',
+                'Technical Issues'
+              ].map((reason) => RadioListTile<String>(
+                    title: Text(reason),
+                    value: reason,
+                    groupValue: selectedReason,
+                    onChanged: (value) {
+                      setState(() => selectedReason = value);
+                    },
+                  )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: selectedReason == null
+                ? null
+                : () {
+                    // TODO: Add report to backend with selectedReason
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('Poll reported for: $selectedReason')),
+                    );
+                    context.pop();
+                  },
+            child: const Text('Report', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 }

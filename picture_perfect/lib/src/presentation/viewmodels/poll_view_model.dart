@@ -244,7 +244,7 @@ class PollViewModel extends ChangeNotifier {
 
   Future<PollModel?> getPollById(String id, {bool forceRefresh = false}) async {
     if (forceRefresh) {
-      _polls.remove(id);
+      _polls.removeWhere((poll) => poll.id == id);
     }
 
     try {

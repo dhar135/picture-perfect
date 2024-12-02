@@ -339,7 +339,7 @@ class PollRepository {
       }
       return null;
     } catch (e) {
-      print('Error in getPollById: $e');
+      AppLogger.error('Error in getPollById: $e');
       return null;
     }
   }

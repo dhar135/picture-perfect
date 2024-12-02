@@ -56,12 +56,6 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
-  Future<void> _handleRefresh() async {
-    final authViewModel = context.read<AuthViewModel>();
-    await authViewModel.refreshCurrentUser();
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
