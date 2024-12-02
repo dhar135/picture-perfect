@@ -127,34 +127,48 @@ class _PollCardState extends State<PollCard> {
   }
 
   Widget _buildImagesSection(bool hasVoted) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: PollImageSection(
-            imageUrl: widget.poll.imageOne,
-            caption: widget.poll.captionOne,
-            label: 'A',
-            hasVoted: hasVoted,
-            votePercentage: widget.poll.getVotePercentages()['imageOne'] ?? 0.0,
-            voteCount: _getVoteCount(widget.poll.imageOne),
-            isPollEnded: !widget.poll.isActive(),
-            isSelected: selectedImageURL == widget.poll.imageOne,
-            onSelect: setSelectedImage,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: PollImageSection(
+                imageUrl: widget.poll.imageOne,
+                caption: widget.poll.captionOne,
+                label: 'A',
+                hasVoted: hasVoted,
+                votePercentage:
+                    widget.poll.getVotePercentages()['imageOne'] ?? 0.0,
+                voteCount: _getVoteCount(widget.poll.imageOne),
+                isPollEnded: !widget.poll.isActive(),
+                isSelected: selectedImageURL == widget.poll.imageOne,
+                onSelect: setSelectedImage,
+              ),
+            ),
+            Expanded(
+              child: PollImageSection(
+                imageUrl: widget.poll.imageTwo,
+                caption: widget.poll.captionTwo,
+                label: 'B',
+                hasVoted: hasVoted,
+                votePercentage:
+                    widget.poll.getVotePercentages()['imageTwo'] ?? 0.0,
+                voteCount: _getVoteCount(widget.poll.imageTwo),
+                isPollEnded: !widget.poll.isActive(),
+                isSelected: selectedImageURL == widget.poll.imageTwo,
+                onSelect: setSelectedImage,
+              ),
+            ),
+          ],
         ),
-        Expanded(
-          child: PollImageSection(
-            imageUrl: widget.poll.imageTwo,
-            caption: widget.poll.captionTwo,
-            label: 'B',
-            hasVoted: hasVoted,
-            votePercentage: widget.poll.getVotePercentages()['imageTwo'] ?? 0.0,
-            voteCount: _getVoteCount(widget.poll.imageTwo),
-            isPollEnded: !widget.poll.isActive(),
-            isSelected: selectedImageURL == widget.poll.imageTwo,
-            onSelect: setSelectedImage,
+        if (hasVoted || !widget.poll.isActive())
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () => context.go('/poll/${widget.poll.id}/results'),
+              child: const Text('View Results'),
+            ),
           ),
-        ),
       ],
     );
   }

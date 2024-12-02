@@ -30,7 +30,6 @@ class PollImageSection extends StatefulWidget {
 }
 
 class _PollImageSectionState extends State<PollImageSection> {
-
   void _handleSelection() {
     if (widget.hasVoted || widget.isPollEnded) return;
     widget.onSelect(widget.imageUrl);
@@ -101,6 +100,34 @@ class _PollImageSectionState extends State<PollImageSection> {
   }
 
   Widget _buildResultsOverlay() {
+    // Show "You have voted for this poll" if user has voted but poll is still active
+    if (widget.hasVoted && !widget.isPollEnded) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black87,
+              Colors.black54,
+            ],
+          ),
+        ),
+        child: const Center(
+          child: Text(
+            'You have voted for this poll',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    // Show "Poll ended" message if poll has ended
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -112,26 +139,16 @@ class _PollImageSectionState extends State<PollImageSection> {
           ],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '${widget.votePercentage.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+      child: const Center(
+        child: Text(
+          'This poll has ended',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${widget.voteCount} votes',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-          ),
-        ],
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
