@@ -17,6 +17,22 @@ class DynamicScaffold extends StatefulWidget {
 class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
   int _calculatedSelectedIndex(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
+    // For desktop layout
+    if (MediaQuery.of(context).size.width > 768) {
+      switch (location) {
+        case '/home':
+          return 0;
+        case '/search':
+          return 1;
+        case '/create_poll':
+          return 2;
+        case '/profile':
+          return 3;
+        default:
+          return 0;
+      }
+    }
+    // For mobile layout
     switch (location) {
       case '/home':
         return 0;
@@ -54,7 +70,14 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
 
     switch (location) {
       case '/home':
-        return AppBar(title: const Text('Home'));
+        return AppBar(
+          title: const Text('Home'),
+          actions: [
+            IconButton(
+                onPressed: () => _goToSearch(context),
+                icon: const Icon(Icons.search))
+          ],
+        );
       case '/profile':
         return AppBar(
           title: Text(user?.name ?? 'Profile'),
@@ -74,11 +97,40 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
           title: const Text('Create Poll'),
         );
       default:
+        if (location == '/' || location.isEmpty) {
+          return AppBar(
+            title: const Text('Home'),
+            actions: [
+              IconButton(
+                  onPressed: () => _goToSearch(context),
+                  icon: const Icon(Icons.search))
+            ],
+          );
+        }
         return AppBar(title: const Text('Picture Perfect'));
     }
   }
 
   void _onItemTapped(BuildContext context, int index) {
+    // For desktop layout
+    if (MediaQuery.of(context).size.width > 768) {
+      switch (index) {
+        case 0:
+          context.go('/home');
+          break;
+        case 1:
+          context.go('/search');
+          break;
+        case 2:
+          context.go('/create_poll');
+          break;
+        case 3:
+          context.go('/profile');
+          break;
+      }
+      return;
+    }
+    // For mobile layout
     switch (index) {
       case 0:
         context.go('/home');
@@ -88,6 +140,7 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
         break;
       case 2:
         context.go('/profile');
+        break;
     }
   }
 
@@ -102,6 +155,10 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
   void _showProfileSettings(BuildContext context) {
     showModalBottomSheet(
         context: context, builder: (context) => EditSettingsSheet());
+  }
+
+  void _goToSearch(BuildContext context) {
+    context.go('/search');
   }
 
   @override
@@ -121,6 +178,11 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home),
                 label: Text('Home'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.search_outlined),
+                selectedIcon: Icon(Icons.search),
+                label: Text('Search'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.add_circle_outline),
