@@ -8,6 +8,7 @@ import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.d
 import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
 import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
 import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
+import 'package:picture_perfect/src/presentation/pages/poll/poll_results_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 
@@ -96,6 +97,24 @@ class AppRouter {
                   },
                 );
               }),
+          GoRoute(
+            path: '/poll/:pollId/results',
+            pageBuilder: (context, state) {
+              final pollId = state.pathParameters['pollId']!;
+              return CustomTransitionPage(
+                name: state.matchedLocation,
+                key: state.pageKey,
+                child: PollResultsPage(pollId: pollId),
+                transitionsBuilder: (BuildContext context,
+                    Animation<double> animation,
+                    Animation<double> secondaryAnimation,
+                    Widget child) {
+                  return fadeTransition(
+                      context, animation, secondaryAnimation, child);
+                },
+              );
+            },
+          ),
         ],
       ),
     ],

@@ -1,26 +1,3 @@
-/// Picture Perfect Application
-///
-/// The main entry point for the Picture Perfect application. This app is a Flutter
-/// application that uses Firebase for backend services and follows a MVVM architecture pattern.
-///
-/// The application initializes Firebase, sets up dependency injection using Provider pattern,
-/// and configures the main routing system.
-///
-/// Features:
-/// * Firebase integration
-/// * Authentication system
-/// * Protected routes using AuthGuard
-/// * Dark theme implementation
-/// * MVVM architecture
-///
-///
-/// Dependencies:
-/// * firebase_core
-/// * provider
-/// * flutter
-///
-/// The app uses [AuthWrapper] as the initial route to handle authentication state
-/// and [AuthGuard] to protect routes that require authentication.
 library;
 
 import 'package:firebase_core/firebase_core.dart';
@@ -31,8 +8,6 @@ import 'package:picture_perfect/src/core/utils/logger.dart';
 import 'package:picture_perfect/src/data/repositories/auth_repository.dart';
 import 'package:picture_perfect/src/data/repositories/poll_repository.dart';
 import 'package:picture_perfect/src/data/repositories/user_repository.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
-import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
@@ -50,6 +25,7 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+
     AppLogger.info('Firebase initialized successfully');
   } catch (e, stackTrace) {
     AppLogger.error('Failed to initialize Firebase', e, stackTrace);
@@ -87,6 +63,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       title: 'Picture Perfect',
       theme: AppTheme.lightTheme,
       routerConfig: AppRouter.router,

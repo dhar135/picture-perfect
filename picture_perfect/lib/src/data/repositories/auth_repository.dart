@@ -1,10 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:picture_perfect/src/core/utils/auth_result.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:picture_perfect/src/data/models/user_model.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
 
-  AuthRepository({FirebaseAuth? auth}) : _auth = auth ?? FirebaseAuth.instance;
+  AuthRepository({FirebaseAuth? auth})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = FirebaseFirestore.instance;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -65,6 +70,19 @@ class AuthRepository {
     } catch (e) {
       return const AuthFailure('Failed to update profile');
     }
+  }
+
+  User? get currentUser => _auth.currentUser;
+
+  Future<UserModel?> getCurrentUser() async {
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser == null) return null;
+
+    final userDoc =
+        await _firestore.collection('users').doc(firebaseUser.uid).get();
+    if (!userDoc.exists) return null;
+
+    return UserModel.fromMap(userDoc.data()!..['id'] = userDoc.id);
   }
 
   String _getErrorMessage(String code) {

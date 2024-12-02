@@ -53,7 +53,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
       ));
       return;
     }
-    final isLastStep = _currentStep == 3;
+    final isLastStep = _currentStep == 4;
 
     if (isLastStep) {
       _submitPoll();
@@ -86,7 +86,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
                 controlsBuilder:
                     (BuildContext context, ControlsDetails details) {
                   // Don't show the default buttons on the last step.
-                  if (_currentStep == 3) {
+                  if (_currentStep == 4) {
                     return Container();
                   }
 
@@ -106,7 +106,8 @@ class _CreatePollPageState extends State<CreatePollPage> {
                 },
                 steps: [
                   _buildBasicInfoStep(),
-                  _buildImagesStep(),
+                  _buildImageOneStep(),
+                  _buildImageTwoStep(),
                   _buildSettingsStep(),
                   _buildPreviewStep()
                 ])));
@@ -148,54 +149,34 @@ class _CreatePollPageState extends State<CreatePollPage> {
           ),
         ),
         isActive: _currentStep >= 0,
-        state: _validateCurrentStep() ? StepState.complete : StepState.indexed);
+        state: _currentStep > 0 && _validateCurrentStep()
+            ? StepState.complete
+            : StepState.indexed);
   }
 
-  Step _buildImagesStep() {
+  Step _buildImageOneStep() {
     return Step(
-      title: const Text('Images'),
+      title: const Text('First Image'),
       content: Container(
         padding: const EdgeInsets.all(8),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Image One Selection
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Card(
-                      child: _buildImageSelector(
-                        "Image One",
-                        _imageOne,
-                        () => _selectImage(true),
-                        _captionOneController,
-                      ),
-                    ),
-                  ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Card(
+                child: _buildImageSelector(
+                  "Image One",
+                  _imageOne,
+                  () => _selectImage(true),
+                  _captionOneController,
                 ),
-                // Image Two Selection
-                Flexible(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Card(
-                      child: _buildImageSelector(
-                        "Image Two",
-                        _imageTwo,
-                        () => _selectImage(false),
-                        _captionTwoController,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            if (_imageOne != null && _imageTwo != null)
+            if (_imageOne != null)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0),
                 child: Text(
-                  'Hold images to preview',
+                  'Hold image to preview',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -203,7 +184,45 @@ class _CreatePollPageState extends State<CreatePollPage> {
         ),
       ),
       isActive: _currentStep >= 1,
-      state: _validateCurrentStep() ? StepState.complete : StepState.indexed,
+      state: _currentStep > 1 && _validateCurrentStep()
+          ? StepState.complete
+          : StepState.indexed,
+    );
+  }
+
+  Step _buildImageTwoStep() {
+    return Step(
+      title: const Text('Second Image'),
+      content: Container(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Card(
+                child: _buildImageSelector(
+                  "Image Two",
+                  _imageTwo,
+                  () => _selectImage(false),
+                  _captionTwoController,
+                ),
+              ),
+            ),
+            if (_imageTwo != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Text(
+                  'Hold image to preview',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+          ],
+        ),
+      ),
+      isActive: _currentStep >= 2,
+      state: _currentStep > 2 && _validateCurrentStep()
+          ? StepState.complete
+          : StepState.indexed,
     );
   }
 
@@ -267,33 +286,28 @@ class _CreatePollPageState extends State<CreatePollPage> {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            Row(
+            Column(
               children: [
-                Expanded(
-                  child: RadioListTile<PollVotingType>(
-                    title: const Text('Public'),
-                    value: PollVotingType.nonAnonymous,
-                    groupValue: _formData.votingType,
-                    onChanged: (value) {
-                      setState(() {
-                        _formData.votingType =
-                            value ?? PollVotingType.nonAnonymous;
-                      });
-                    },
-                  ),
+                RadioListTile<PollVotingType>(
+                  title: const Text('Public'),
+                  value: PollVotingType.nonAnonymous,
+                  groupValue: _formData.votingType,
+                  onChanged: (value) {
+                    setState(() {
+                      _formData.votingType =
+                          value ?? PollVotingType.nonAnonymous;
+                    });
+                  },
                 ),
-                Expanded(
-                  child: RadioListTile<PollVotingType>(
-                    title: const Text('Anonymous'),
-                    value: PollVotingType.anonymous,
-                    groupValue: _formData.votingType,
-                    onChanged: (value) {
-                      setState(() {
-                        _formData.votingType =
-                            value ?? PollVotingType.anonymous;
-                      });
-                    },
-                  ),
+                RadioListTile<PollVotingType>(
+                  title: const Text('Anonymous'),
+                  value: PollVotingType.anonymous,
+                  groupValue: _formData.votingType,
+                  onChanged: (value) {
+                    setState(() {
+                      _formData.votingType = value ?? PollVotingType.anonymous;
+                    });
+                  },
                 ),
               ],
             ),
@@ -344,8 +358,10 @@ class _CreatePollPageState extends State<CreatePollPage> {
           ],
         ),
       ),
-      isActive: _currentStep >= 2,
-      state: _validateCurrentStep() ? StepState.complete : StepState.indexed,
+      isActive: _currentStep >= 3,
+      state: _currentStep > 3 && _validateCurrentStep()
+          ? StepState.complete
+          : StepState.indexed,
     );
   }
 
@@ -484,7 +500,7 @@ class _CreatePollPageState extends State<CreatePollPage> {
                     : const Text('Create Poll'))
           ],
         ),
-        isActive: _currentStep >= 3,
+        isActive: _currentStep >= 4,
         state: _validateCurrentStep() ? StepState.complete : StepState.indexed);
   }
 
@@ -580,10 +596,9 @@ class _CreatePollPageState extends State<CreatePollPage> {
       ),
     );
   }
-
+  
   /// Utility Functions Below
 
-  // Enhanced image selection method
   Future<void> _selectImage(bool isFirstImage) async {
     setState(() => _isLoading = true);
     try {
@@ -602,7 +617,6 @@ class _CreatePollPageState extends State<CreatePollPage> {
     }
   }
 
-  // Remove image
   void _removeImage(bool isFirstImage) {
     setState(() {
       if (isFirstImage) {
@@ -615,7 +629,6 @@ class _CreatePollPageState extends State<CreatePollPage> {
     });
   }
 
-  // Preview image
   void _previewImage(ImageData image) {
     showDialog(
       context: context,
@@ -761,11 +774,17 @@ class _CreatePollPageState extends State<CreatePollPage> {
       case 0: // Basic Info Step
         return _titleController.text.isNotEmpty;
 
-      case 1: // Images Step
-        return _imageTwo != null && _imageTwo != null;
+      case 1: // First Image Step
+        return _imageOne != null;
 
-      case 2: // Settings step
+      case 2: // Second Image Step
+        return _imageTwo != null;
+
+      case 3: // Settings step
         return _formData.category != null;
+
+      case 4: // Preview step
+        return true;
 
       default:
         return true;

@@ -199,4 +199,41 @@ class AuthViewModel extends ChangeNotifier {
       _setLoading(false);
     }
   }
+
+  void setCurrentUser(UserModel user) {
+    _currentUser = user;
+    _status = AuthStatus.authenticated;
+    notifyListeners();
+  }
+
+  // Add this method to check if the user is actually authenticated with Firebase
+  Future<bool> validateAuthState() async {
+    bool isValid = false;
+
+    await _authRepository.authStateChanges.first.then((firebaseUser) {
+      if (firebaseUser != null && _currentUser != null) {
+        isValid = true;
+      } else {
+        _status = AuthStatus.unauthenticated;
+        _currentUser = null;
+        notifyListeners();
+      }
+    });
+
+    return isValid;
+  }
+
+  Future<void> refreshCurrentUser() async {
+    if (_currentUser == null) return;
+
+    try {
+      final user = await _authRepository.getCurrentUser();
+      if (user != null) {
+        _currentUser = user;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing current user: $e');
+    }
+  }
 }

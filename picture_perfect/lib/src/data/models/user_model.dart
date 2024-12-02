@@ -148,4 +148,20 @@ class UserModel {
   String toString() {
     return 'UserModel{id: $id, email: $email, name: $name, profilePicture: $profilePicture, bio: $bio, followers: $followers, following: $following, posts: $posts, savedPosts: $savedPosts, createdPolls: $createdPolls, votedPolls: $votedPolls, createdAt: $createdAt, lastLoginAt: $lastLoginAt}';
   }
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['id'] ?? '',
+      email: map['email'] ?? '',
+      name: map['name'],
+      bio: map['bio'],
+      profilePicture: map['profilePicture'],
+      createdPolls: List<String>.from(map['createdPolls'] ?? []),
+      savedPosts: List<String>.from(map['savedPosts'] ?? []),
+      votedPolls: List<String>.from(map['votedPolls'] ?? []),
+      followers: map['followers'] ?? 0,
+      following: map['following'] ?? 0,
+      createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
 }

@@ -9,7 +9,6 @@ class PollImageSection extends StatefulWidget {
   final double votePercentage;
   final int voteCount;
   final bool isPollEnded;
-  final Function(String) onVoteSubmit;
 
   final bool isSelected;
   final Function(String) onSelect;
@@ -23,7 +22,6 @@ class PollImageSection extends StatefulWidget {
       required this.votePercentage,
       required this.voteCount,
       required this.isPollEnded,
-      required this.onVoteSubmit,
       required this.isSelected,
       required this.onSelect});
 
@@ -32,22 +30,9 @@ class PollImageSection extends StatefulWidget {
 }
 
 class _PollImageSectionState extends State<PollImageSection> {
-  bool _isSelected = false;
-  bool _isLoading = false;
-
   void _handleSelection() {
     if (widget.hasVoted || widget.isPollEnded) return;
     widget.onSelect(widget.imageUrl);
-  }
-
-  Future<void> _submitVote() async {
-    if (_isLoading) return;
-    setState(() => _isLoading = true);
-    await widget.onVoteSubmit(widget.imageUrl);
-    setState(() {
-      _isLoading = false;
-      _isSelected = false;
-    });
   }
 
   @override
@@ -91,24 +76,6 @@ class _PollImageSectionState extends State<PollImageSection> {
               // Results Overlay
               if (widget.hasVoted || widget.isPollEnded) _buildResultsOverlay(),
 
-              // Vote Button
-              if (widget.isSelected && !widget.hasVoted && !widget.isPollEnded)
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submitVote,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Cast Vote'),
-                  ),
-                ),
-
               // Caption
               if (widget.caption != null)
                 Positioned(
@@ -133,6 +100,34 @@ class _PollImageSectionState extends State<PollImageSection> {
   }
 
   Widget _buildResultsOverlay() {
+    // Show "You have voted for this poll" if user has voted but poll is still active
+    if (widget.hasVoted && !widget.isPollEnded) {
+      return Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black87,
+              Colors.black54,
+            ],
+          ),
+        ),
+        child: const Center(
+          child: Text(
+            'You have voted for this poll',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    // Show "Poll ended" message if poll has ended
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -144,26 +139,16 @@ class _PollImageSectionState extends State<PollImageSection> {
           ],
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '${widget.votePercentage.toStringAsFixed(1)}%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+      child: const Center(
+        child: Text(
+          'This poll has ended',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${widget.voteCount} votes',
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 16,
-            ),
-          ),
-        ],
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }

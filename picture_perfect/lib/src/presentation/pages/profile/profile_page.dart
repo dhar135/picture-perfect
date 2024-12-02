@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:picture_perfect/src/data/models/poll_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold.dart';
@@ -25,7 +26,28 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    final authViewModel = context.read<AuthViewModel>();
+    final isCurrentUser =
+        widget.userId == null || widget.userId == authViewModel.currentUser!.id;
+
+    _tabController = TabController(
+      length: isCurrentUser ? 3 : 1, // Only show 1 tab for other users
+      vsync: this,
+    );
+
+    // Load initial user data
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        final targetUserId = widget.userId ?? authViewModel.currentUser!.id;
+        final userViewModel = context.read<UserViewModel>();
+        final user = await userViewModel.getUserById(targetUserId);
+
+        // Update auth view model if it's the current user
+        if (user != null && isCurrentUser && mounted) {
+          authViewModel.setCurrentUser(user);
+        }
+      }
+    });
   }
 
   @override
@@ -34,45 +56,58 @@ class _ProfilePageState extends State<ProfilePage>
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    final authViewModel = context.read<AuthViewModel>();
+    await authViewModel.refreshCurrentUser();
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
+
+    // Check authentication
+    if (!authViewModel.isAuthenticated) {
+      return const DynamicScaffold(
+        child: Center(
+          child: Text('Please login to view profile'),
+        ),
+      );
+    }
+
     final currentUserId = authViewModel.currentUser!.id;
     final targetUserId = widget.userId ?? currentUserId;
     final isCurrentUser = targetUserId == currentUserId;
 
-    return FutureBuilder(
+    return DynamicScaffold(
+      child: FutureBuilder(
         future: context.read<UserViewModel>().getUserById(targetUserId),
         builder: (context, AsyncSnapshot<UserModel?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting ||
               _isLoading) {
-            return const DynamicScaffold(
-              child: Center(child: CircularProgressIndicator()),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return DynamicScaffold(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Error loading profile: ${snapshot.error}'),
-                    ElevatedButton(
-                      onPressed: () => setState(() {}),
-                      child: Text('Retry'),
-                    ),
-                  ],
-                ),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error loading profile: ${snapshot.error}'),
+                  ElevatedButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             );
           }
 
           final user = snapshot.data!;
 
-          return DynamicScaffold(
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          return NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
@@ -93,27 +128,29 @@ class _ProfilePageState extends State<ProfilePage>
                   delegate: _SliverAppBarDelegate(
                     TabBar(
                       controller: _tabController,
-                      tabs: const [
-                        Tab(text: 'Created'),
-                        Tab(text: 'Saved'),
-                        Tab(text: 'Voted'),
+                      tabs: [
+                        const Tab(text: 'Created'),
+                        if (isCurrentUser) const Tab(text: 'Saved'),
+                        if (isCurrentUser) const Tab(text: 'Voted'),
                       ],
                     ),
                   ),
                   pinned: true,
                 ),
+              ];
+            },
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _CreatedPollsTab(polls: user.createdPolls),
+                if (isCurrentUser) _SavedPollsTab(polls: user.savedPosts),
+                if (isCurrentUser) _VotedPollsTab(polls: user.votedPolls),
               ],
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  _CreatedPollsTab(polls: user.createdPolls),
-                  _SavedPollsTab(polls: user.savedPosts),
-                  _VotedPollsTab(polls: user.votedPolls),
-                ],
-              ),
             ),
           );
-        });
+        },
+      ),
+    );
   }
 
   Future<void> _handleFollowTap(BuildContext context, String userId) async {
@@ -158,27 +195,14 @@ class _ProfileHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          Stack(
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: user.profilePicture != null
-                    ? CachedNetworkImageProvider(user.profilePicture!)
-                    : null,
-                child: user.profilePicture == null
-                    ? const Icon(Icons.person, size: 50)
-                    : null,
-              ),
-              if (isCurrentUser)
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _showEditProfile(context),
-                  ),
-                ),
-            ],
+          CircleAvatar(
+            radius: 50,
+            backgroundImage: user.profilePicture != null
+                ? CachedNetworkImageProvider(user.profilePicture!)
+                : null,
+            child: user.profilePicture == null
+                ? const Icon(Icons.person, size: 50)
+                : null,
           ),
           const SizedBox(height: 16),
           Text(
@@ -204,10 +228,6 @@ class _ProfileHeader extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  void _showEditProfile(BuildContext context) {
-    // TODO: Implement your edit profile logic here
   }
 }
 
@@ -284,12 +304,37 @@ class _CreatedPollsTab extends StatelessWidget {
     return Consumer<PollViewModel>(
       builder:
           (BuildContext context, PollViewModel pollViewModel, Widget? child) {
-        return ListView.builder(
-          itemCount: polls.length,
-          itemBuilder: (context, index) {
-            final poll = pollViewModel.polls[index];
-            return PollCard(poll: poll);
+        return RefreshIndicator(
+          onRefresh: () async {
+            // Refresh user data
+            await context.read<AuthViewModel>().refreshCurrentUser();
           },
+          child: FutureBuilder(
+            future: Future.wait(
+              polls.map((pollId) => pollViewModel.getPollById(pollId)).toList(),
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('Error loading polls: ${snapshot.error}'));
+              }
+
+              final loadedPolls = snapshot.data!.whereType<PollModel>().toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: loadedPolls.length,
+                itemBuilder: (context, index) {
+                  return PollCard(poll: loadedPolls[index]);
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -307,10 +352,40 @@ class _SavedPollsTab extends StatelessWidget {
       return const Center(child: Text('No saved polls yet'));
     }
 
-    return ListView.builder(
-      itemCount: polls.length,
-      itemBuilder: (context, index) {
-        return _PollCard(pollId: polls[index]);
+    return Consumer<PollViewModel>(
+      builder:
+          (BuildContext context, PollViewModel pollViewModel, Widget? child) {
+        return RefreshIndicator(
+          onRefresh: () async {
+            await context.read<AuthViewModel>().refreshCurrentUser();
+          },
+          child: FutureBuilder(
+            future: Future.wait(
+              polls.map((pollId) => pollViewModel.getPollById(pollId)).toList(),
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('Error loading polls: ${snapshot.error}'));
+              }
+
+              final loadedPolls = snapshot.data!.whereType<PollModel>().toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: loadedPolls.length,
+                itemBuilder: (context, index) {
+                  return PollCard(poll: loadedPolls[index]);
+                },
+              );
+            },
+          ),
+        );
       },
     );
   }
@@ -327,29 +402,41 @@ class _VotedPollsTab extends StatelessWidget {
       return const Center(child: Text('No voted polls yet'));
     }
 
-    return ListView.builder(
-      itemCount: polls.length,
-      itemBuilder: (context, index) {
-        return _PollCard(pollId: polls[index]);
+    return Consumer<PollViewModel>(
+      builder:
+          (BuildContext context, PollViewModel pollViewModel, Widget? child) {
+        return RefreshIndicator(
+          onRefresh: () async {
+            await context.read<AuthViewModel>().refreshCurrentUser();
+          },
+          child: FutureBuilder(
+            future: Future.wait(
+              polls.map((pollId) => pollViewModel.getPollById(pollId)).toList(),
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(
+                    child: Text('Error loading polls: ${snapshot.error}'));
+              }
+
+              final loadedPolls = snapshot.data!.whereType<PollModel>().toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                itemCount: loadedPolls.length,
+                itemBuilder: (context, index) {
+                  return PollCard(poll: loadedPolls[index]);
+                },
+              );
+            },
+          ),
+        );
       },
-    );
-  }
-}
-
-class _PollCard extends StatelessWidget {
-  final String pollId;
-
-  const _PollCard({required this.pollId});
-
-  @override
-  Widget build(BuildContext context) {
-    // You'll need to implement this based on your poll model and data
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: ListTile(
-        title: Text('Poll $pollId'),
-        // Add more poll details here
-      ),
     );
   }
 }

@@ -116,23 +116,38 @@ class UserViewModel extends ChangeNotifier {
   }) async {
     AppLogger.info(
         'Toggling saved poll (${save ? 'save' : 'unsave'}) for userId: $userId, pollId: $pollId');
-    final result = await _userRepository.toggleSavedPoll(
-      userId: userId,
-      pollId: pollId,
-      save: save,
-    );
 
-    if (result is Success<void>) {
-      await loadUserProfile(userId);
-      AppLogger.info(
-          'Successfully toggled saved poll for userId: $userId, pollId: $pollId');
-      return true;
-    } else if (result is Failure<void>) {
-      _setError(result.message);
-      AppLogger.error('Failed to toggle saved poll', result.message);
+    try {
+      final result = await _userRepository.toggleSavedPoll(
+        userId: userId,
+        pollId: pollId,
+        save: save,
+      );
+
+      if (result is Success<void>) {
+        if (_user != null) {
+          final updatedSavedPosts = List<String>.from(_user!.savedPosts);
+          if (save) {
+            updatedSavedPosts.add(pollId);
+          } else {
+            updatedSavedPosts.remove(pollId);
+          }
+
+          _user = _user!.copyWith(savedPosts: updatedSavedPosts);
+          notifyListeners();
+        }
+
+        await loadUserProfile(userId);
+        return true;
+      } else {
+        _setError((result as Failure).message);
+        return false;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to toggle saved poll', e);
+      _setError(e.toString());
       return false;
     }
-    return false;
   }
 
   // Get saved polls
@@ -176,9 +191,14 @@ class UserViewModel extends ChangeNotifier {
     }
   }
 
-  Future<UserModel?> getUserById(String userId) async {
+  Future<UserModel?> getUserById(String id, {bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      // Clear the cached user
+      _user = null;
+    }
+
     try {
-      final result = await _userRepository.getUserById(userId);
+      final result = await _userRepository.getUserById(id);
       if (result is Success<UserModel>) {
         return result.data;
       }
@@ -192,19 +212,16 @@ class UserViewModel extends ChangeNotifier {
   // Helper methods
   void _setLoading(bool value) {
     _isLoading = value;
-    AppLogger.debug('Loading state changed to: $value');
     notifyListeners();
   }
 
   void _setError(String error) {
     _error = error;
-    AppLogger.warning('Error set: $error');
     notifyListeners();
   }
 
   void _clearError() {
     _error = null;
-    AppLogger.debug('Error cleared');
     notifyListeners();
   }
 }
