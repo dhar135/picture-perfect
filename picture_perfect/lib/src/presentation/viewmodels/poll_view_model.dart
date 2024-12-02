@@ -242,9 +242,13 @@ class PollViewModel extends ChangeNotifier {
     }
   }
 
-  Future<PollModel?> getPollById(String pollId) async {
+  Future<PollModel?> getPollById(String id, {bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      _polls.remove(id);
+    }
+
     try {
-      return await _pollRepository.getPollById(pollId);
+      return await _pollRepository.getPollById(id);
     } catch (e) {
       AppLogger.error('Error fetching poll by ID: $e');
       return null;

@@ -114,8 +114,9 @@ class UserViewModel extends ChangeNotifier {
     required String pollId,
     required bool save,
   }) async {
-    AppLogger.info('Toggling saved poll (${save ? 'save' : 'unsave'}) for userId: $userId, pollId: $pollId');
-    
+    AppLogger.info(
+        'Toggling saved poll (${save ? 'save' : 'unsave'}) for userId: $userId, pollId: $pollId');
+
     try {
       final result = await _userRepository.toggleSavedPoll(
         userId: userId,
@@ -131,11 +132,11 @@ class UserViewModel extends ChangeNotifier {
           } else {
             updatedSavedPosts.remove(pollId);
           }
-          
+
           _user = _user!.copyWith(savedPosts: updatedSavedPosts);
           notifyListeners();
         }
-        
+
         await loadUserProfile(userId);
         return true;
       } else {
@@ -190,9 +191,14 @@ class UserViewModel extends ChangeNotifier {
     }
   }
 
-  Future<UserModel?> getUserById(String userId) async {
+  Future<UserModel?> getUserById(String id, {bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      // Clear the cached user
+      _user = null;
+    }
+
     try {
-      final result = await _userRepository.getUserById(userId);
+      final result = await _userRepository.getUserById(id);
       if (result is Success<UserModel>) {
         return result.data;
       }

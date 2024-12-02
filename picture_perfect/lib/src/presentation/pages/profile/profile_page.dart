@@ -26,12 +26,28 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   void initState() {
     super.initState();
-    final isCurrentUser = widget.userId == null ||
-        widget.userId == context.read<AuthViewModel>().currentUser!.id;
+    final authViewModel = context.read<AuthViewModel>();
+    final isCurrentUser =
+        widget.userId == null || widget.userId == authViewModel.currentUser!.id;
+
     _tabController = TabController(
       length: isCurrentUser ? 3 : 1, // Only show 1 tab for other users
       vsync: this,
     );
+
+    // Load initial user data
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (mounted) {
+        final targetUserId = widget.userId ?? authViewModel.currentUser!.id;
+        final userViewModel = context.read<UserViewModel>();
+        final user = await userViewModel.getUserById(targetUserId);
+
+        // Update auth view model if it's the current user
+        if (user != null && isCurrentUser && mounted) {
+          authViewModel.setCurrentUser(user);
+        }
+      }
+    });
   }
 
   @override
@@ -43,42 +59,96 @@ class _ProfilePageState extends State<ProfilePage>
   @override
   Widget build(BuildContext context) {
     final authViewModel = context.watch<AuthViewModel>();
+
+    // Check authentication
+    if (!authViewModel.isAuthenticated) {
+      return const DynamicScaffold(
+        child: Center(
+          child: Text('Please login to view profile'),
+        ),
+      );
+    }
+
     final currentUserId = authViewModel.currentUser!.id;
     final targetUserId = widget.userId ?? currentUserId;
     final isCurrentUser = targetUserId == currentUserId;
 
-    return FutureBuilder(
+    return DynamicScaffold(
+      child: FutureBuilder(
         future: context.read<UserViewModel>().getUserById(targetUserId),
         builder: (context, AsyncSnapshot<UserModel?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting ||
               _isLoading) {
-            return const DynamicScaffold(
-              child: Center(child: CircularProgressIndicator()),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return DynamicScaffold(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Error loading profile: ${snapshot.error}'),
-                    ElevatedButton(
-                      onPressed: () => setState(() {}),
-                      child: Text('Retry'),
-                    ),
-                  ],
-                ),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Error loading profile: ${snapshot.error}'),
+                  ElevatedButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             );
           }
 
           final user = snapshot.data!;
 
-          return DynamicScaffold(
-            child: NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          return RefreshIndicator(
+            onRefresh: () async {
+              if (!mounted) return;
+
+              final authViewModel = context.read<AuthViewModel>();
+              if (!authViewModel.isAuthenticated) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please login to refresh')),
+                );
+                return;
+              }
+
+              // Refresh user data
+              final userViewModel = context.read<UserViewModel>();
+              final updatedUser = await userViewModel.getUserById(targetUserId,
+                  forceRefresh: true);
+
+              // Update the auth view model with the refreshed user data if it's the current user
+              if (updatedUser != null && isCurrentUser) {
+                authViewModel.setCurrentUser(updatedUser);
+              }
+
+              if (!mounted) return;
+
+              // Refresh all polls data
+              if (updatedUser != null && mounted) {
+                final pollViewModel = context.read<PollViewModel>();
+                // Refresh created polls
+                await Future.wait(
+                  updatedUser.createdPolls.map((pollId) =>
+                      pollViewModel.getPollById(pollId, forceRefresh: true)),
+                );
+                // Refresh saved polls if current user
+                if (isCurrentUser) {
+                  await Future.wait(
+                    updatedUser.savedPosts.map((pollId) =>
+                        pollViewModel.getPollById(pollId, forceRefresh: true)),
+                  );
+                  // Refresh voted polls
+                  await Future.wait(
+                    updatedUser.votedPolls.map((pollId) =>
+                        pollViewModel.getPollById(pollId, forceRefresh: true)),
+                  );
+                }
+              }
+              // Force rebuild
+              setState(() {});
+            },
+            child: CustomScrollView(
+              slivers: [
                 SliverToBoxAdapter(
                   child: Column(
                     children: [
@@ -108,18 +178,22 @@ class _ProfilePageState extends State<ProfilePage>
                   ),
                   pinned: true,
                 ),
+                SliverFillRemaining(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _CreatedPollsTab(polls: user.createdPolls),
+                      if (isCurrentUser) _SavedPollsTab(polls: user.savedPosts),
+                      if (isCurrentUser) _VotedPollsTab(polls: user.votedPolls),
+                    ],
+                  ),
+                ),
               ],
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  _CreatedPollsTab(polls: user.createdPolls),
-                  if (isCurrentUser) _SavedPollsTab(polls: user.savedPosts),
-                  if (isCurrentUser) _VotedPollsTab(polls: user.votedPolls),
-                ],
-              ),
             ),
           );
-        });
+        },
+      ),
+    );
   }
 
   Future<void> _handleFollowTap(BuildContext context, String userId) async {
@@ -291,6 +365,7 @@ class _CreatedPollsTab extends StatelessWidget {
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
             return ListView.builder(
+              physics: const ClampingScrollPhysics(),
               itemCount: loadedPolls.length,
               itemBuilder: (context, index) {
                 return PollCard(poll: loadedPolls[index]);
@@ -335,6 +410,7 @@ class _SavedPollsTab extends StatelessWidget {
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
             return ListView.builder(
+              physics: const ClampingScrollPhysics(),
               itemCount: loadedPolls.length,
               itemBuilder: (context, index) {
                 return PollCard(poll: loadedPolls[index]);
@@ -379,6 +455,7 @@ class _VotedPollsTab extends StatelessWidget {
               ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
             return ListView.builder(
+              physics: const ClampingScrollPhysics(),
               itemCount: loadedPolls.length,
               itemBuilder: (context, index) {
                 return PollCard(poll: loadedPolls[index]);

@@ -45,7 +45,7 @@ class _PollCardState extends State<PollCard> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(context, pollCreator, theme),
+          _buildHeader(context, pollCreator, theme, isSaved),
           _buildTitleSection(theme),
           _buildImagesSection(hasVoted),
           if (selectedImageURL != null && !hasVoted && widget.poll.isActive())
@@ -56,8 +56,8 @@ class _PollCardState extends State<PollCard> {
     );
   }
 
-  Widget _buildHeader(
-      BuildContext context, Future<UserModel?> pollCreator, ThemeData theme) {
+  Widget _buildHeader(BuildContext context, Future<UserModel?> pollCreator,
+      ThemeData theme, bool isSaved) {
     return Padding(
       padding: const EdgeInsets.all(8),
       child: FutureBuilder<UserModel?>(
@@ -85,6 +85,13 @@ class _PollCardState extends State<PollCard> {
                   style: theme.textTheme.titleSmall,
                 ),
                 const Spacer(),
+                IconButton(
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Theme.of(context).primaryColor : null,
+                  ),
+                  onPressed: _isSaving ? null : () => _handleSave(context),
+                ),
                 PopupMenuButton(
                   itemBuilder: (context) => [
                     PopupMenuItem(
@@ -173,13 +180,6 @@ class _PollCardState extends State<PollCard> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            icon: Icon(
-              isSaved ? Icons.bookmark : Icons.bookmark_border,
-              color: isSaved ? Theme.of(context).primaryColor : null,
-            ),
-            onPressed: _isSaving ? null : () => _handleSave(context),
-          ),
         ],
       ),
     );
@@ -243,32 +243,32 @@ class _PollCardState extends State<PollCard> {
   }
 
   Future<void> _handleSave(BuildContext context) async {
-  final currentUser = context.read<AuthViewModel>().currentUser;
-  final userViewModel = context.read<UserViewModel>();
-  final user = userViewModel.user;
+    final currentUser = context.read<AuthViewModel>().currentUser;
+    final userViewModel = context.read<UserViewModel>();
+    final user = userViewModel.user;
 
-  if (currentUser == null || user == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please login to save polls')),
-    );
-    return;
+    if (currentUser == null || user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please login to save polls')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final isSaved = user.savedPosts.contains(widget.poll.id);
+      AppLogger.info('Current save state: $isSaved');
+
+      await userViewModel.toggleSavedPoll(
+        userId: currentUser.id,
+        pollId: widget.poll.id,
+        save: !isSaved,
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
-
-  setState(() => _isSaving = true);
-
-  try {
-    final isSaved = user.savedPosts.contains(widget.poll.id);
-    AppLogger.info('Current save state: $isSaved');
-    
-    await userViewModel.toggleSavedPoll(
-      userId: currentUser.id,
-      pollId: widget.poll.id,
-      save: !isSaved,
-    );
-  } finally {
-    if (mounted) setState(() => _isSaving = false);
-  }
-}
 
   void _handleReport(BuildContext context) {
     // TODO: Implement report functionality

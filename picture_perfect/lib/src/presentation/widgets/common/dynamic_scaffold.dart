@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:picture_perfect/src/data/models/user_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/profile/edit_profile_widget.dart';
 import 'package:picture_perfect/src/presentation/widgets/profile/profile_settings_widget.dart';
@@ -32,43 +33,43 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
   // Generates a dynamic AppBar based on the current route
   PreferredSizeWidget _buildDynamicAppBar(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    final userViewModel = context.watch<UserViewModel>();
-    // If user is null or loading, show loading or error state
-    if (userViewModel.isLoading) {
-      return AppBar(title: CircularProgressIndicator());
+    final authViewModel = context.watch<AuthViewModel>();
+
+    // If not authenticated and on profile page, redirect to login
+    if (!authViewModel.isAuthenticated && location == '/profile') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.go('/login');
+      });
+      return AppBar(title: const Text('Redirecting...'));
     }
 
-    if (userViewModel.error != null) {
-      return AppBar(title: Text('Error: ${userViewModel.error}'));
+    // If user is loading, show loading state
+    if (authViewModel.isLoading) {
+      return AppBar(title: const CircularProgressIndicator());
     }
 
-    // Use the user from the ViewModel instead of a stream
-    final user = userViewModel.user;
-
-    if (user == null) {
-      return AppBar(title: Text('No user data available'));
+    final user = authViewModel.currentUser;
+    if (user == null && location == '/profile') {
+      return AppBar(title: const Text('Please login'));
     }
 
     switch (location) {
       case '/home':
-        return AppBar(
-          title: const Text('Home'),
-        );
+        return AppBar(title: const Text('Home'));
       case '/profile':
-        return PreferredSize(
-            preferredSize: const Size.fromHeight(kToolbarHeight),
-            child: AppBar(
-              title: Text(user.name ?? 'Profile'),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _showEditProfile(context, user),
-                ),
-                IconButton(
-                    onPressed: () => _showProfileSettings(context),
-                    icon: const Icon(Icons.settings)),
-              ],
-            ));
+        return AppBar(
+          title: Text(user?.name ?? 'Profile'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _showEditProfile(context, user!),
+            ),
+            IconButton(
+              onPressed: () => _showProfileSettings(context),
+              icon: const Icon(Icons.settings),
+            ),
+          ],
+        );
       case '/create_poll':
         return AppBar(
           title: const Text('Create Poll'),
