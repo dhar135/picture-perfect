@@ -22,13 +22,12 @@ class AuthViewModel extends ChangeNotifier {
 
   AuthViewModel(this._authRepository) {
     AppLogger.info('Initializing AuthViewModel');
+    initializeAuthState();
 
     _authRepository.authStateChanges.listen((user) {
       if (user != null) {
         AppLogger.info('User authenticated: ${user.email}');
         _currentUser = UserModel.fromFirebaseUser(user);
-
-        AppLogger.info('User Info: ${currentUser?.toJson()}');
         _status = AuthStatus.authenticated;
       } else {
         AppLogger.info('User unauthenticated');
@@ -234,6 +233,31 @@ class AuthViewModel extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error refreshing current user: $e');
+    }
+  }
+
+  // Add this method to initialize the auth state
+  Future<void> initializeAuthState([BuildContext? context]) async {
+    try {
+      final user = await _authRepository.getCurrentUser();
+      if (user != null) {
+        _currentUser = user;
+        _status = AuthStatus.authenticated;
+
+        // Only load profile if context is provided
+        if (context != null) {
+          final userViewModel = context.read<UserViewModel>();
+          await userViewModel.loadUserProfile(user.id);
+        }
+      } else {
+        _status = AuthStatus.unauthenticated;
+      }
+      // Notify after all async operations
+      notifyListeners();
+    } catch (e) {
+      AppLogger.error('Error initializing auth state:', e);
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
     }
   }
 }

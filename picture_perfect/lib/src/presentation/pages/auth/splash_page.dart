@@ -42,9 +42,13 @@ class _SplashPageState extends State<SplashPage>
       ),
     );
 
-    // Start animation and check auth state
+    // Start animation
     _controller.forward();
-    checkAuthState();
+
+    // Schedule auth check for next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkAuthState();
+    });
   }
 
   @override
@@ -55,7 +59,11 @@ class _SplashPageState extends State<SplashPage>
 
   Future<void> checkAuthState() async {
     final authViewModel = context.read<AuthViewModel>();
-    // Wait for 5 seconds
+
+    // Initialize auth state with context
+    await authViewModel.initializeAuthState(context);
+
+    // Wait for animation
     await Future.delayed(const Duration(seconds: 5));
 
     if (!mounted) return;

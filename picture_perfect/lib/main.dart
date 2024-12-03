@@ -35,17 +35,17 @@ void main() async {
   final userRepository = UserRepository();
   final pollRepository = PollRepository();
 
+  final authViewModel = AuthViewModel(authRepository);
+  final userViewModel = UserViewModel(userRepository);
+
+  await authViewModel.initializeAuthState();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthViewModel(
-            authRepository,
-          ),
-        ),
+        ChangeNotifierProvider.value(value: authViewModel),
+        ChangeNotifierProvider.value(value: userViewModel),
         ChangeNotifierProvider(create: (_) => PollViewModel(pollRepository)),
-        ChangeNotifierProvider(create: (_) => UserViewModel(userRepository)),
-        Provider<UserRepository>(create: (_) => UserRepository())
       ],
       child: const MyApp(),
     ),

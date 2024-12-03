@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:picture_perfect/src/core/enum/auth_status.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_guard.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/auth_wrapper.dart';
 import 'package:picture_perfect/src/presentation/pages/auth/login_page.dart';
@@ -11,6 +12,7 @@ import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
 import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
 import 'package:picture_perfect/src/presentation/pages/poll/poll_results_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
+import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
 
 class AppRouter {
@@ -68,7 +70,7 @@ class AppRouter {
             ),
           ),
           GoRoute(
-            path: '/explore',
+            path: '/search',
             builder: (context, state) => const ExplorePage(),
           ),
           GoRoute(
@@ -126,10 +128,9 @@ class AppRouter {
     ],
     redirect: (BuildContext context, GoRouterState state) {
       final authViewModel = context.read<AuthViewModel>();
-      final isAuthenticated = authViewModel.isAuthenticated;
+      final userViewModel = context.read<UserViewModel>();
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
-      final isInitialRoute = state.matchedLocation == '/';
       final isSplashRoute = state.matchedLocation == '/splash';
 
       // Don't redirect if on splash page
@@ -137,19 +138,29 @@ class AppRouter {
         return null;
       }
 
-      // If not authenticated and trying to access protected route
-      if (!isAuthenticated && !isAuthRoute && !isInitialRoute) {
-        return '/login';
+      // If authentication is still being determined, go to splash
+      if (authViewModel.status == AuthStatus.initial) {
+        return '/splash';
       }
 
-      // If authenticated and trying to access auth routes
-      if (isAuthenticated && (isAuthRoute || isInitialRoute)) {
+      // If authenticated but user profile not loaded, go to splash
+      if (authViewModel.status == AuthStatus.authenticated &&
+          userViewModel.user == null) {
+        return '/splash';
+      }
+
+      // If authenticated and user profile loaded, redirect from auth routes to home
+      if (authViewModel.status == AuthStatus.authenticated &&
+          userViewModel.user != null &&
+          (isAuthRoute || state.matchedLocation == '/')) {
         return '/home';
       }
 
-      // If not authenticated and trying to access auth routes, allow it
-      if (!isAuthenticated && isAuthRoute) {
-        return null;
+      // If not authenticated, redirect to login
+      if (authViewModel.status == AuthStatus.unauthenticated &&
+          !isAuthRoute &&
+          state.matchedLocation != '/') {
+        return '/login';
       }
 
       return null;
