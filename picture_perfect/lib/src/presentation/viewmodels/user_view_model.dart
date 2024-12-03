@@ -209,6 +209,25 @@ class UserViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> toggleFollow({
+    required String followerId,
+    required String followingId,
+  }) async {
+    try {
+      _setLoading(true);
+      final result = await _userRepository.toggleFollow(
+        followerId: followerId,
+        followingId: followingId,
+      );
+      _setLoading(false);
+      return result is Success;
+    } catch (e) {
+      _setError(e.toString());
+      _setLoading(false);
+      return false;
+    }
+  }
+
   // Helper methods
   void _setLoading(bool value) {
     _isLoading = value;

@@ -161,8 +161,9 @@ class UserRepository {
     try {
       final userRef = _firestore.collection(collection).doc(userId);
 
-      AppLogger.info('DB Operation - ${save ? 'Adding' : 'Removing'} pollId: $pollId');
-      
+      AppLogger.info(
+          'DB Operation - ${save ? 'Adding' : 'Removing'} pollId: $pollId');
+
       if (save) {
         await userRef.update({
           'savedPosts': FieldValue.arrayUnion([pollId]),
@@ -237,6 +238,69 @@ class UserRepository {
         message: 'Failed to delete user account',
         error: e,
       );
+    }
+  }
+
+  Future<Result<void>> toggleFollow({
+    required String followerId,
+    required String followingId,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+      final followerRef = _firestore.collection('users').doc(followerId);
+      final followingRef = _firestore.collection('users').doc(followingId);
+
+      // Get current user doc to check if already following
+      final followerDoc = await followerRef.get();
+      final followingList =
+          List<String>.from(followerDoc.data()?['following'] ?? []);
+
+      if (followingList.contains(followingId)) {
+        // Unfollow
+        batch.update(followerRef, {
+          'following': FieldValue.arrayRemove([followingId])
+        });
+        batch.update(followingRef, {
+          'followers': FieldValue.arrayRemove([followerId])
+        });
+      } else {
+        // Follow
+        batch.update(followerRef, {
+          'following': FieldValue.arrayUnion([followingId])
+        });
+        batch.update(followingRef, {
+          'followers': FieldValue.arrayUnion([followerId])
+        });
+      }
+
+      await batch.commit();
+      return const Success(null);
+    } catch (e) {
+      return Failure(message: e.toString());
+    }
+  }
+
+  Future<void> migrateFollowersToList() async {
+    try {
+      final QuerySnapshot users = await _firestore.collection('users').get();
+
+      final batch = _firestore.batch();
+
+      for (var doc in users.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        // Check if followers/following are numbers
+        if (data['followers'] is num || data['following'] is num) {
+          batch.update(doc.reference, {
+            'followers': [], // Reset to empty list
+            'following': [], // Reset to empty list
+          });
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      AppLogger.error('Migration error: $e');
     }
   }
 }

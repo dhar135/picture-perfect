@@ -7,8 +7,8 @@ class UserModel {
   final String? name;
   final String? profilePicture;
   final String? bio;
-  final int followers;
-  final int following;
+  final List<String> followers;
+  final List<String> following;
   final int posts;
   final List<String> savedPosts;
   final List<String> createdPolls;
@@ -22,8 +22,8 @@ class UserModel {
     this.name,
     this.profilePicture,
     this.bio,
-    this.followers = 0,
-    this.following = 0,
+    this.followers = const [],
+    this.following = const [],
     this.posts = 0,
     this.savedPosts = const [],
     this.createdPolls = const [],
@@ -53,8 +53,8 @@ class UserModel {
       name: data['name'] as String?,
       profilePicture: data['profilePicture'] as String?,
       bio: data['bio'] as String?,
-      followers: (data['followers'] as num?)?.toInt() ?? 0,
-      following: (data['following'] as num?)?.toInt() ?? 0,
+      followers: List<String>.from(data['followers'] ?? []),
+      following: List<String>.from(data['following'] ?? []),
       posts: (data['posts'] as num?)?.toInt() ?? 0,
       savedPosts: List<String>.from(data['savedPosts'] ?? []),
       createdPolls: List<String>.from(data['createdPolls'] ?? []),
@@ -88,8 +88,8 @@ class UserModel {
     String? name,
     String? profilePicture,
     String? bio,
-    int? followers,
-    int? following,
+    List<String>? followers,
+    List<String>? following,
     int? posts,
     List<String>? savedPosts,
     List<String>? createdPolls,
@@ -159,8 +159,8 @@ class UserModel {
       createdPolls: List<String>.from(map['createdPolls'] ?? []),
       savedPosts: List<String>.from(map['savedPosts'] ?? []),
       votedPolls: List<String>.from(map['votedPolls'] ?? []),
-      followers: map['followers'] ?? 0,
-      following: map['following'] ?? 0,
+      followers: List<String>.from(map['followers'] ?? []),
+      following: List<String>.from(map['following'] ?? []),
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }

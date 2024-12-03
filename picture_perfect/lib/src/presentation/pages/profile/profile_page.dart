@@ -5,6 +5,7 @@ import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart
 import 'package:picture_perfect/src/presentation/viewmodels/poll_view_model.dart';
 import 'package:picture_perfect/src/presentation/widgets/common/dynamic_scaffold.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../data/models/user_model.dart';
 import '../../viewmodels/user_view_model.dart';
@@ -148,26 +149,58 @@ class _ProfilePageState extends State<ProfilePage>
   }
 
   Future<void> _handleFollowTap(BuildContext context, String userId) async {
+    if (!mounted) return;
+
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final userViewModel = context.read<UserViewModel>();
+    final authViewModel = context.read<AuthViewModel>();
+    final currentUserId = authViewModel.currentUser!.id;
+
     setState(() => _isLoading = true);
 
     try {
-      final userViewModel = context.read<UserViewModel>();
-      final currentUserId = context.read<AuthViewModel>().currentUser!.id;
-
-      // await userViewModel.toggleFollow(
-      //   followerId: currentUserId,
-      //   followingId: userId,
-      // );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Successfully updated follow status')),
+      final success = await userViewModel.toggleFollow(
+        followerId: currentUserId,
+        followingId: userId,
       );
+
+      if (success) {
+        // Refresh both users' data
+        await Future.wait([
+          userViewModel.getUserById(userId, forceRefresh: true),
+          authViewModel.refreshCurrentUser(),
+        ]);
+
+        if (!mounted) return;
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Successfully updated follow status'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update follow status'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update follow status: $e')),
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Error updating follow status: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }
@@ -185,6 +218,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = context.watch<AuthViewModel>().currentUser!;
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -213,10 +248,32 @@ class _ProfileHeader extends StatelessWidget {
           ],
           if (!isCurrentUser) ...[
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: onFollowTap,
-              child: Text(
-                  'Follow'), // TODO: You'll need to change this based on follow status
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.id)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const ElevatedButton(
+                    onPressed: null,
+                    child: Text('Loading...'),
+                  );
+                }
+
+                final userData = snapshot.data!.data() as Map<String, dynamic>?;
+                final followers =
+                    List<String>.from(userData?['followers'] ?? []);
+                final isFollowing = followers.contains(currentUser.id);
+
+                return ElevatedButton(
+                  onPressed: onFollowTap,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFollowing ? Colors.grey : null,
+                  ),
+                  child: Text(isFollowing ? 'Following' : 'Follow'),
+                );
+              },
             ),
           ],
         ],
@@ -237,8 +294,10 @@ class _StatsRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         _buildStatColumn(context, 'Posts', user.createdPolls.length.toString()),
-        _buildStatColumn(context, 'Followers', user.followers.toString()),
-        _buildStatColumn(context, 'Following', user.following.toString()),
+        _buildStatColumn(
+            context, 'Followers', user.followers.length.toString()),
+        _buildStatColumn(
+            context, 'Following', user.following.length.toString()),
       ],
     );
   }
