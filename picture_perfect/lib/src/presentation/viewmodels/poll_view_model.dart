@@ -254,4 +254,80 @@ class PollViewModel extends ChangeNotifier {
       return null;
     }
   }
+
+  Future<bool> updatePoll({
+    required String pollId,
+    required String title,
+    String? description,
+    String? captionOne,
+    String? captionTwo,
+    PollCategory? category,
+    DateTime? deadline,
+  }) async {
+    try {
+      AppLogger.info('Updating poll: $pollId');
+      _setState(PollViewState.loading);
+
+      final result = await _pollRepository.updatePoll(
+        pollId: pollId,
+        title: title,
+        description: description,
+        captionOne: captionOne,
+        captionTwo: captionTwo,
+        category: category,
+        deadline: deadline,
+      );
+
+      if (result is Success<PollModel>) {
+        final index = _polls.indexWhere((poll) => poll.id == pollId);
+        if (index != -1) {
+          _polls[index] = result.data;
+        }
+        _setState(PollViewState.success);
+        AppLogger.info('Successfully updated poll: $pollId');
+        return true;
+      } else if (result is Failure<PollModel>) {
+        _setError(result.message);
+        _setState(PollViewState.error);
+        AppLogger.error('Failed to update poll: ${result.message}');
+        return false;
+      }
+      return false;
+    } catch (e, stackTrace) {
+      AppLogger.error('Unexpected error updating poll:', e, stackTrace);
+      _setError('Unexpected error: $e');
+      _setState(PollViewState.error);
+      return false;
+    }
+  }
+
+  Future<bool> deletePoll(String pollId, String userId) async {
+    try {
+      AppLogger.info('Deleting poll: $pollId');
+      _setState(PollViewState.loading);
+
+      final result = await _pollRepository.deletePoll(
+        pollId: pollId,
+        userId: userId,
+      );
+
+      if (result is Success<void>) {
+        _polls.removeWhere((poll) => poll.id == pollId);
+        _setState(PollViewState.success);
+        AppLogger.info('Successfully deleted poll: $pollId');
+        return true;
+      } else if (result is Failure<void>) {
+        _setError(result.message);
+        _setState(PollViewState.error);
+        AppLogger.error('Failed to delete poll: ${result.message}');
+        return false;
+      }
+      return false;
+    } catch (e, stackTrace) {
+      AppLogger.error('Unexpected error deleting poll:', e, stackTrace);
+      _setError('Unexpected error: $e');
+      _setState(PollViewState.error);
+      return false;
+    }
+  }
 }

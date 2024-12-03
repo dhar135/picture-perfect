@@ -343,4 +343,31 @@ class PollRepository {
       return null;
     }
   }
+
+  Future<Result<PollModel>> updatePoll({
+    required String pollId,
+    required String title,
+    String? description,
+    String? captionOne,
+    String? captionTwo,
+    PollCategory? category,
+    DateTime? deadline,
+  }) async {
+    try {
+      final pollRef = _firestore.collection('polls').doc(pollId);
+      await pollRef.update({
+        'title': title,
+        'description': description,
+        'captionOne': captionOne,
+        'captionTwo': captionTwo,
+        if (category != null) 'category': category.name,
+        if (deadline != null) 'deadline': deadline.toIso8601String(),
+      });
+
+      final updatedPoll = await getPollById(pollId);
+      return Success(updatedPoll!);
+    } catch (e) {
+      return Failure(message: 'Failed to update poll: $e');
+    }
+  }
 }

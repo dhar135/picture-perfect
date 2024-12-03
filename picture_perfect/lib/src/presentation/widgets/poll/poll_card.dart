@@ -23,6 +23,10 @@ class _PollCardState extends State<PollCard> {
   String? selectedImageURL;
   bool _isVoting = false;
   bool _isSaving = false;
+  String? _editedTitle;
+  String? _editedDescription;
+  String? _editedCaptionOne;
+  String? _editedCaptionTwo;
 
   void setSelectedImage(String url) {
     setState(() {
@@ -94,6 +98,17 @@ class _PollCardState extends State<PollCard> {
                 ),
                 PopupMenuButton(
                   itemBuilder: (context) => [
+                    if (widget.poll.creatorId ==
+                        context.read<AuthViewModel>().currentUser?.id) ...[
+                      PopupMenuItem(
+                        child: const Text('Edit'),
+                        onTap: () => _handleEdit(context),
+                      ),
+                      PopupMenuItem(
+                        child: const Text('Delete'),
+                        onTap: () => _handleDelete(context),
+                      ),
+                    ],
                     PopupMenuItem(
                       child: const Text('Report'),
                       onTap: () => _handleReport(context),
@@ -335,5 +350,132 @@ class _PollCardState extends State<PollCard> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleEdit(BuildContext context) async {
+    // Wait for the popup menu to close
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    if (!mounted) return;
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Poll'),
+        content: StatefulBuilder(
+          builder: (context, setState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: widget.poll.title,
+                  decoration: const InputDecoration(labelText: 'Title'),
+                  onChanged: (value) => setState(() => _editedTitle = value),
+                ),
+                TextFormField(
+                  initialValue: widget.poll.description,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  onChanged: (value) =>
+                      setState(() => _editedDescription = value),
+                ),
+                TextFormField(
+                  initialValue: widget.poll.captionOne,
+                  decoration: const InputDecoration(labelText: 'Caption A'),
+                  onChanged: (value) =>
+                      setState(() => _editedCaptionOne = value),
+                ),
+                TextFormField(
+                  initialValue: widget.poll.captionTwo,
+                  decoration: const InputDecoration(labelText: 'Caption B'),
+                  onChanged: (value) =>
+                      setState(() => _editedCaptionTwo = value),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => context.pop({
+              'title': _editedTitle ?? widget.poll.title,
+              'description': _editedDescription ?? widget.poll.description,
+              'captionOne': _editedCaptionOne ?? widget.poll.captionOne,
+              'captionTwo': _editedCaptionTwo ?? widget.poll.captionTwo,
+            }),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      final pollViewModel = context.read<PollViewModel>();
+      final success = await pollViewModel.updatePoll(
+        pollId: widget.poll.id,
+        title: result['title'],
+        description: result['description'],
+        captionOne: result['captionOne'],
+        captionTwo: result['captionTwo'],
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Poll updated successfully'
+                : 'Failed to update poll'),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDelete(BuildContext context) async {
+    // Wait for the popup menu to close
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    if (!mounted) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Poll'),
+        content: const Text(
+            'Are you sure you want to delete this poll? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => context.pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final pollViewModel = context.read<PollViewModel>();
+      final success = await pollViewModel.deletePoll(
+        widget.poll.id,
+        context.read<AuthViewModel>().currentUser!.id,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success
+                ? 'Poll deleted successfully'
+                : 'Failed to delete poll'),
+          ),
+        );
+      }
+    }
   }
 }

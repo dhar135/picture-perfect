@@ -1,7 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 
-enum PollCategory { fashion, food, lifestyle, other }
+enum PollCategory {
+  fashion,
+  food,
+  lifestyle,
+  beauty,
+  travel,
+  technology,
+  pets,
+  fitness,
+  home,
+  entertainment,
+  art,
+  sports,
+  other
+}
 
 enum PollVotingType { anonymous, nonAnonymous }
 
