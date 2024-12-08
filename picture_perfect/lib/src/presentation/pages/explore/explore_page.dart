@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ExplorePage extends StatelessWidget {
   const ExplorePage({super.key});
@@ -7,6 +8,10 @@ class ExplorePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+        ),
         title: const Text('Explore'),
       ),
       body: SafeArea(
@@ -16,7 +21,6 @@ class ExplorePage extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Add your login form widgets here
                 const Text(
                   'Explore Page',
                   style: TextStyle(
