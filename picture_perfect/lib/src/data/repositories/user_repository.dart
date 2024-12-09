@@ -14,8 +14,8 @@ class UserRepository {
   final String collection = 'users';
 
   UserRepository({
-    required FirebaseFirestore firestore, // Required parameter
-    required FirebaseStorage storage, // Required parameter
+    required FirebaseFirestore firestore,
+    required FirebaseStorage storage,
   })  : _firestore = firestore,
         _storage = storage;
 
