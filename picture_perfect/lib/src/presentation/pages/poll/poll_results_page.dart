@@ -320,9 +320,9 @@ class PollResultsPage extends StatelessWidget {
                         ),
                         title: Text(snapshot.data?.name ?? 'Unknown User'),
                         trailing: Text(
-                          'Voted ${entry.value == poll.imageOne ? 'A' : 'B'}',
+                          'Voted ${entry.value.selectedImageId == poll.imageOne ? 'A' : 'B'}',
                           style: TextStyle(
-                            color: entry.value == poll.imageOne
+                            color: entry.value.selectedImageId == poll.imageOne
                                 ? Colors.blue
                                 : Colors.red,
                             fontWeight: FontWeight.bold,
@@ -341,6 +341,8 @@ class PollResultsPage extends StatelessWidget {
   }
 
   int _getVoteCount(PollModel poll, String imageUrl) {
-    return poll.votes.values.where((vote) => vote == imageUrl).length;
+    return poll.votes.values
+        .where((voteRecord) => voteRecord.selectedImageId == imageUrl)
+        .length;
   }
 }

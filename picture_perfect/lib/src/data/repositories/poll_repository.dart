@@ -34,38 +34,37 @@ class PollRepository {
       DateTime? deadline,
       required PollStatus status}) async {
     try {
-      // Upload images to Firebase Storage
       final imageOneUrl = await uploadImageData(imageOne, creatorId);
       final imageTwoUrl = await uploadImageData(imageTwo, creatorId);
+      final pollRef = _firestore.collection(pollCollection).doc();
 
       final pollData = PollModel(
-          id: '', // Firestore will generate the ID
-          title: title,
-          description: description,
-          creatorId: creatorId,
-          imageOne: imageOneUrl,
-          imageTwo: imageTwoUrl,
-          captionOne: captionOne,
-          captionTwo: captionTwo,
-          category: category,
-          votingType: votingType,
-          createdAt: DateTime.now(),
-          deadline: deadline,
-          status: status);
+        id: pollRef.id,
+        title: title,
+        description: description,
+        creatorId: creatorId,
+        imageOne: imageOneUrl,
+        imageTwo: imageTwoUrl,
+        captionOne: captionOne,
+        captionTwo: captionTwo,
+        category: category,
+        votingType: votingType,
+        createdAt: DateTime.now(),
+        deadline: deadline,
+        status: status,
+        votes: {},
+        totalVotes: 0,
+      );
 
-      // Add poll to Firestore
-      final pollRef =
-          await _firestore.collection(pollCollection).add(pollData.toJson());
-      final updatedPoll = pollData.copyWith(id: pollRef.id);
+      await pollRef.set(pollData.toJson());
 
-      // Update user's created polls
       await _firestore.collection(userCollection).doc(creatorId).update({
         'createdPolls': FieldValue.arrayUnion([pollRef.id])
       });
 
-      return Success(updatedPoll);
+      return Success(pollData);
     } catch (e) {
-      return Failure(message: 'Failed to create poll', error: e);
+      return Failure(message: 'Failed to create poll: $e');
     }
   }
 
@@ -87,16 +86,16 @@ class PollRepository {
   }
 
   // Vote on a poll
-  Future<Result<void>> votePoll({
+  Future<Result<PollModel>> votePoll({
     required String pollId,
     required String userId,
     required String selectedImage,
+    required VoteRecord voteRecord,
   }) async {
     try {
       final pollRef = _firestore.collection(pollCollection).doc(pollId);
       final userRef = _firestore.collection(userCollection).doc(userId);
 
-      // Transaction to ensure atomic updates
       await _firestore.runTransaction((transaction) async {
         final pollSnapshot = await transaction.get(pollRef);
         if (!pollSnapshot.exists) {
@@ -105,36 +104,35 @@ class PollRepository {
 
         final pollData = PollModel.fromDocument(pollSnapshot);
 
-        // Check if user has already voted
         if (pollData.votes.containsKey(userId)) {
           throw Exception('User has already voted');
         }
 
-        // Check if deadline has passed
         if (pollData.deadline != null &&
             DateTime.now().isAfter(pollData.deadline!)) {
           throw Exception('Voting deadline has passed');
         }
 
-        // Update poll votes
+        // Update with VoteRecord instead of just the selected image
         transaction.update(pollRef, {
-          'votes.$userId': selectedImage,
+          'votes.$userId': voteRecord.toJson(),
           'totalVotes': FieldValue.increment(1),
         });
 
-        // Update user's voted polls
         transaction.update(userRef, {
           'votedPolls': FieldValue.arrayUnion([pollId])
         });
       });
 
-      return const Success(null);
+      // Fetch and return updated poll
+      final updatedPollDoc = await pollRef.get();
+      final updatedPoll = PollModel.fromDocument(updatedPollDoc);
+      return Success(updatedPoll);
     } catch (e) {
-      return Failure(message: 'Failed to vote on poll', error: e);
+      return Failure(message: 'Failed to vote on poll: $e');
     }
   }
 
-  // Fetch polls with various filtering options
   Future<Result<List<PollModel>>> fetchPolls({
     PollCategory? category,
     String? followedUserId,
@@ -142,10 +140,8 @@ class PollRepository {
     DocumentSnapshot? lastDocument,
   }) async {
     try {
-      AppLogger.debug('Fetching polls with params: '
-          'category: $category, '
-          'followedUserId: $followedUserId, '
-          'limit: $limit');
+      AppLogger.debug(
+          'Fetching polls with params: category: $category, followedUserId: $followedUserId, limit: $limit');
 
       Query query = _firestore.collection(pollCollection);
 
@@ -161,27 +157,18 @@ class PollRepository {
       }
 
       final snapshot = await query.get();
-      AppLogger.debug('Fetched ${snapshot.docs.length} documents');
-
       final polls = <PollModel>[];
-      List<String> invalidDocs = [];
 
       for (var doc in snapshot.docs) {
         try {
           final poll = PollModel.fromDocument(doc);
           polls.add(poll);
-        } catch (e) {
-          AppLogger.error('Invalid poll document found: ${doc.id}', e);
-          invalidDocs.add(doc.id);
-          // Maybe you want to delete or fix invalid documents
-          // await _handleInvalidDocument(doc.id);
+        } catch (e, stackTrace) {
+          AppLogger.error(
+              'Failed to parse poll document ${doc.id}', e, stackTrace);
+          // Log error but continue processing other documents
           continue;
         }
-      }
-
-      if (invalidDocs.isNotEmpty) {
-        AppLogger.warning(
-            'Found ${invalidDocs.length} invalid poll documents: ${invalidDocs.join(", ")}');
       }
 
       return Success(
@@ -190,7 +177,7 @@ class PollRepository {
       );
     } catch (e, stackTrace) {
       AppLogger.error('Failed to fetch polls', e, stackTrace);
-      return Failure(message: 'Failed to fetch polls: ${e.toString()}');
+      return Failure(message: 'Failed to fetch polls: $e');
     }
   }
 
@@ -293,41 +280,6 @@ class PollRepository {
       return Success(poll);
     } catch (e) {
       return Failure(message: 'Failed to fetch poll', error: e);
-    }
-  }
-
-  // Batch create polls
-  Future<Result<List<PollModel>>> createPolls(
-      List<Map<String, dynamic>> pollsData) async {
-    try {
-      final batch = _firestore.batch();
-      final polls = <PollModel>[];
-
-      for (var pollData in pollsData) {
-        final pollRef = _firestore.collection(pollCollection).doc();
-        final poll = PollModel(
-            id: pollRef.id,
-            creatorId: pollData['creatorId'],
-            title: pollData['title'],
-            description: pollData['description'],
-            imageOne: pollData['imageOne'],
-            imageTwo: pollData['imageTwo'],
-            captionOne: pollData['captionOne'],
-            captionTwo: pollData['captionTwo'],
-            category: pollData['category'],
-            votingType: pollData['votingType'],
-            createdAt: pollData['createdAt'],
-            deadline: pollData['deadline'],
-            votes: pollData['votes'],
-            totalVotes: pollData['totalVotes'],
-            status: pollData['status']);
-        batch.set(pollRef, poll.toJson());
-        polls.add(poll);
-      }
-      await batch.commit();
-      return Success(polls);
-    } catch (e) {
-      return Failure(message: 'Failed to create polls', error: e);
     }
   }
 

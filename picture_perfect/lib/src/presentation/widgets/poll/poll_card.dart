@@ -243,7 +243,9 @@ class _PollCardState extends State<PollCard> {
   }
 
   int _getVoteCount(String imageUrl) {
-    return widget.poll.votes.values.where((vote) => vote == imageUrl).length;
+    return widget.poll.votes.values
+        .where((voteRecord) => voteRecord.selectedImageId == imageUrl)
+        .length;
   }
 
   Future<void> _handleVote(BuildContext context, String selectedImage) async {

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:picture_perfect/src/core/utils/logger.dart';
 
+/// Represents different categories a poll can belong to
 enum PollCategory {
   fashion,
   food,
@@ -17,11 +18,56 @@ enum PollCategory {
   other
 }
 
+/// Defines whether votes in a poll are anonymous or not
 enum PollVotingType { anonymous, nonAnonymous }
 
+/// Represents the current status of a poll
 enum PollStatus { draft, active, closed }
 
+/// Exception thrown when poll-related operations fail
+class PollException implements Exception {
+  final String message;
+  PollException(this.message);
+
+  @override
+  String toString() => 'PollException: $message';
+}
+
+/// Represents a single vote in a poll
+class VoteRecord {
+  final String userId;
+  final String selectedImageId;
+  final DateTime timestamp;
+
+  const VoteRecord({
+    required this.userId,
+    required this.selectedImageId,
+    required this.timestamp,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'userId': userId,
+        'selectedImageId': selectedImageId,
+        'timestamp': Timestamp.fromDate(timestamp),
+      };
+
+  factory VoteRecord.fromJson(Map<String, dynamic> json) {
+    return VoteRecord(
+      userId: json['userId'] as String,
+      selectedImageId: json['selectedImageId'] as String,
+      timestamp: (json['timestamp'] as Timestamp).toDate(),
+    );
+  }
+}
+
+/// Represents a poll where users can vote between two images
+///
+/// A poll has a title, two images to choose from, and various metadata about
+/// its status, voting type, and category. It supports both anonymous and
+/// non-anonymous voting, and can be set to close at a specific deadline.
 class PollModel {
+  static const double defaultPercentage = 0.0;
+
   final String id;
   final String creatorId;
   final String title;
@@ -34,51 +80,93 @@ class PollModel {
   final PollVotingType votingType;
   final DateTime createdAt;
   final DateTime? deadline;
-  final Map<String, String> votes;
+  final Map<String, VoteRecord> votes;
   final int totalVotes;
   final PollStatus status;
 
-  PollModel(
-      {required this.id,
-      required this.creatorId,
-      required this.title,
-      this.description,
-      required this.imageOne,
-      required this.imageTwo,
-      this.captionOne,
-      this.captionTwo,
-      this.category = PollCategory.other,
-      this.votingType = PollVotingType.nonAnonymous,
-      required this.createdAt,
-      this.deadline,
-      this.votes = const {},
-      this.totalVotes = 0,
-      required this.status});
+  /// Creates a new poll with the specified parameters
+  ///
+  /// Throws [PollException] if required parameters are invalid
+  PollModel({
+    required this.id,
+    required this.creatorId,
+    required this.title,
+    this.description,
+    required this.imageOne,
+    required this.imageTwo,
+    this.captionOne,
+    this.captionTwo,
+    this.category = PollCategory.other,
+    this.votingType = PollVotingType.nonAnonymous,
+    required this.createdAt,
+    this.deadline,
+    Map<String, VoteRecord>? votes,
+    int? totalVotes,
+    required this.status,
+  })  : votes = votes ?? {},
+        totalVotes = totalVotes ?? 0 {
+    _validateConstructorParameters();
+  }
 
+  /// Validates that all required parameters are properly set
+  void _validateConstructorParameters() {
+    if (id.isEmpty) {
+      throw PollException('Poll ID cannot be empty');
+    }
+    if (creatorId.isEmpty) {
+      throw PollException('Creator ID cannot be empty');
+    }
+    if (title.trim().isEmpty) {
+      throw PollException('Title cannot be empty');
+    }
+    if (imageOne.isEmpty || imageTwo.isEmpty) {
+      throw PollException('Both images must be specified');
+    }
+    if (deadline != null && deadline!.isBefore(DateTime.now())) {
+      throw PollException('Deadline must be in the future');
+    }
+    if (votes.length != totalVotes) {
+      throw PollException('Total votes must match the number of vote records');
+    }
+  }
+
+  /// Checks if the poll is currently active and accepting votes
+  ///
+  /// Returns false if the poll is closed or the deadline has passed
   bool isActive() {
     if (status == PollStatus.closed) return false;
+    if (status == PollStatus.draft) return false;
     if (deadline == null) return true;
     return DateTime.now().isBefore(deadline!);
   }
 
-  // Create from Firestore document
+  /// Creates a PollModel instance from a Firestore document
+  ///
+  /// Expects the document to contain all required fields for a valid poll
+  /// Throws [FormatException] if required fields are missing
   factory PollModel.fromDocument(DocumentSnapshot doc) {
     try {
       final data = doc.data() as Map<String, dynamic>;
 
       // Check required fields
-      if (data['creatorId'] == null ||
-          data['title'] == null ||
-          data['imageOne'] == null ||
-          data['imageTwo'] == null) {
+      final requiredFields = ['creatorId', 'title', 'imageOne', 'imageTwo'];
+      final missingFields =
+          requiredFields.where((field) => data[field] == null).toList();
+
+      if (missingFields.isNotEmpty) {
         throw FormatException(
-            'Document ${doc.id} is missing required fields: ${[
-          if (data['creatorId'] == null) 'creatorId',
-          if (data['title'] == null) 'title',
-          if (data['imageOne'] == null) 'imageOne',
-          if (data['imageTwo'] == null) 'imageTwo',
-        ].join(', ')}');
+          'Document ${doc.id} is missing required fields: ${missingFields.join(', ')}',
+        );
       }
+
+      // Parse votes
+      final votesMap = (data['votes'] as Map<String, dynamic>?)?.map(
+            (key, value) => MapEntry(
+              key,
+              VoteRecord.fromJson(value as Map<String, dynamic>),
+            ),
+          ) ??
+          {};
 
       return PollModel(
         id: doc.id,
@@ -94,20 +182,21 @@ class PollModel {
         createdAt:
             (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
         deadline: (data['deadline'] as Timestamp?)?.toDate(),
-        votes: (data['votes'] as Map<String, dynamic>?)
-                ?.map((key, value) => MapEntry(key, value.toString())) ??
-            {},
-        totalVotes: (data['totalVotes'] as num?)?.toInt() ?? 0,
+        votes: votesMap,
+        totalVotes: votesMap.length,
         status: _statusFromString(data['status']?.toString()),
       );
     } catch (e, stackTrace) {
-      AppLogger.error('Error creating PollModel from document ${doc.id}: $e', e,
-          stackTrace);
+      AppLogger.error(
+        'Error creating PollModel from document ${doc.id}: $e',
+        e,
+        stackTrace,
+      );
       rethrow;
     }
   }
 
-  // Helper methods for safer enum conversion
+  /// Converts enum values from their string representations
   static PollCategory _categoryFromString(String? value) {
     try {
       return PollCategory.values.firstWhere(
@@ -144,9 +233,9 @@ class PollModel {
     }
   }
 
-  // Convert to JSON for Firestore
+  /// Converts the poll to a JSON format suitable for Firestore storage
   Map<String, dynamic> toJson() {
-    return {
+    final json = {
       'creatorId': creatorId,
       'title': title,
       'description': description,
@@ -154,33 +243,43 @@ class PollModel {
       'imageTwo': imageTwo,
       'captionOne': captionOne,
       'captionTwo': captionTwo,
-      'category': category.toString(),
-      'votingType': votingType.toString(),
+      'category': category.toString().split('.').last,
+      'votingType': votingType.toString().split('.').last,
       'createdAt': Timestamp.fromDate(createdAt),
       'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
-      'votes': votes,
+      'votes': votes.map((key, value) => MapEntry(key, value.toJson())),
       'totalVotes': totalVotes,
-      'status': status.toString()
+      'status': status.toString().split('.').last,
     };
+
+    return json;
   }
 
-  // vote calculation
+  /// Calculates the percentage of votes for each image
+  ///
+  /// Returns a map containing vote percentages for both images
   Map<String, double> getVotePercentages() {
-    if (totalVotes == 0) return {'imageOne': 0.0, 'imageTwo': 0.0};
-
-    int imageOneCount = 0;
-    for (var vote in votes.values) {
-      if (vote == imageOne) imageOneCount++;
+    if (totalVotes == 0) {
+      return {
+        'imageOne': defaultPercentage,
+        'imageTwo': defaultPercentage,
+      };
     }
 
-    final imageOnePercentage = (imageOneCount / totalVotes) * 100;
+    final imageOneVotes =
+        votes.values.where((vote) => vote.selectedImageId == imageOne).length;
+
+    final imageOnePercentage = (imageOneVotes / totalVotes) * 100;
+
     return {
       'imageOne': imageOnePercentage,
       'imageTwo': 100 - imageOnePercentage,
     };
   }
 
-  // Copywrite method for immutable updates
+  /// Creates a new instance of PollModel with updated fields
+  ///
+  /// Any parameter not provided will retain its original value
   PollModel copyWith({
     String? id,
     String? title,
@@ -193,25 +292,26 @@ class PollModel {
     PollCategory? category,
     PollVotingType? votingType,
     DateTime? deadline,
-    Map<String, String>? votes,
+    Map<String, VoteRecord>? votes,
     int? totalVotes,
     PollStatus? status,
   }) {
     return PollModel(
-        id: id ?? this.id,
-        title: title ?? this.title,
-        description: description ?? this.description,
-        creatorId: creatorId ?? this.creatorId,
-        imageOne: imageOne ?? this.imageOne,
-        imageTwo: imageTwo ?? this.imageTwo,
-        captionOne: captionOne ?? this.captionOne,
-        captionTwo: captionTwo ?? this.captionTwo,
-        category: category ?? this.category,
-        votingType: votingType ?? this.votingType,
-        createdAt: createdAt,
-        deadline: deadline ?? this.deadline,
-        votes: votes ?? this.votes,
-        totalVotes: totalVotes ?? this.totalVotes,
-        status: status ?? this.status);
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      creatorId: creatorId ?? this.creatorId,
+      imageOne: imageOne ?? this.imageOne,
+      imageTwo: imageTwo ?? this.imageTwo,
+      captionOne: captionOne ?? this.captionOne,
+      captionTwo: captionTwo ?? this.captionTwo,
+      category: category ?? this.category,
+      votingType: votingType ?? this.votingType,
+      createdAt: createdAt,
+      deadline: deadline ?? this.deadline,
+      votes: votes ?? this.votes,
+      totalVotes: totalVotes ?? this.totalVotes,
+      status: status ?? this.status,
+    );
   }
 }

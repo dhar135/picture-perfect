@@ -94,10 +94,17 @@ class PollViewModel extends ChangeNotifier {
     AppLogger.info("Attempting to vote on poll, $pollId");
     _setState(PollViewState.loading);
 
+    final voteRecord = VoteRecord(
+      userId: userId,
+      selectedImageId: selectedImage,
+      timestamp: DateTime.now(),
+    );
+
     final result = await _pollRepository.votePoll(
       pollId: pollId,
       userId: userId,
       selectedImage: selectedImage,
+      voteRecord: voteRecord,
     );
 
     if (result is Success<PollModel>) {
@@ -233,10 +240,20 @@ class PollViewModel extends ChangeNotifier {
   void _updatePollVotes(String pollId, String userId, String selectedImage) {
     final pollIndex = _polls.indexWhere((poll) => poll.id == pollId);
     if (pollIndex != -1) {
+      final newVote = VoteRecord(
+        userId: userId,
+        selectedImageId: selectedImage,
+        timestamp: DateTime.now(),
+      );
+
+      final updatedVotes = Map<String, VoteRecord>.from(_polls[pollIndex].votes)
+        ..[userId] = newVote;
+
       final updatedPoll = _polls[pollIndex].copyWith(
-        votes: {..._polls[pollIndex].votes, userId: selectedImage},
+        votes: updatedVotes,
         totalVotes: _polls[pollIndex].totalVotes + 1,
       );
+
       _polls[pollIndex] = updatedPoll;
       notifyListeners();
     }
