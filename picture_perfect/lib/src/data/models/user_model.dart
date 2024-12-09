@@ -1,22 +1,55 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as auth;
 
+/// A model class representing a user in the application.
+///
+/// This class manages user data mapping between the application and Firestore,
+/// handling user profile information, social connections, and activity tracking.
+/// It ensures data consistency through immutability and input validation.
 class UserModel {
+  /// Unique identifier for the user, matches Firebase Auth UID
   final String id;
+
+  /// User's email address, used for authentication
   final String email;
+
+  /// Optional display name of the user
   final String? name;
+
+  /// URL to user's profile picture
   final String? profilePicture;
+
+  /// User's biographical information
   final String? bio;
+
+  /// List of user IDs who follow this user
   final List<String> followers;
+
+  /// List of user IDs this user follows
   final List<String> following;
+
+  /// Total number of posts created by the user
   final int posts;
+
+  /// List of poll IDs saved by the user
   final List<String> savedPosts;
+
+  /// List of poll IDs created by the user
   final List<String> createdPolls;
+
+  /// List of poll IDs where the user has voted
   final List<String> votedPolls;
+
+  /// Timestamp when the user account was created
   final DateTime createdAt;
+
+  /// Timestamp of user's last login
   final DateTime? lastLoginAt;
 
-  const UserModel({
+  /// Creates a new UserModel instance with validation.
+  ///
+  /// Throws [AssertionError] if required fields are invalid.
+  UserModel({
     required this.id,
     required this.email,
     this.name,
@@ -30,10 +63,21 @@ class UserModel {
     this.votedPolls = const [],
     required this.createdAt,
     this.lastLoginAt,
-  });
+  }) {
+    assert(id.isNotEmpty, 'User ID cannot be empty');
+    assert(email.isNotEmpty, 'Email cannot be empty');
+    assert(email.contains('@'), 'Invalid email format');
+  }
 
-  // Create from Firebase User
+  /// Creates a UserModel instance from a Firebase Auth user.
+  ///
+  /// Used during initial user registration or auth state changes.
+  /// Throws [ArgumentError] if the user's email is null.
   factory UserModel.fromFirebaseUser(auth.User user) {
+    if (user.email == null) {
+      throw ArgumentError('Firebase user must have an email');
+    }
+
     return UserModel(
       id: user.uid,
       email: user.email!,
@@ -43,9 +87,20 @@ class UserModel {
     );
   }
 
-  // Create from Firestore document
-  factory UserModel.fromDocument(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  /// Creates a UserModel instance from a Firestore document.
+  ///
+  /// Throws [FormatException] if required fields are missing.
+  factory UserModel.fromDocument(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+
+    if (data == null) {
+      throw FormatException('Document ${doc.id} has no data');
+    }
+
+    if (data['email'] == null) {
+      throw FormatException(
+          'Document ${doc.id} is missing required email field');
+    }
 
     return UserModel(
       id: doc.id,
