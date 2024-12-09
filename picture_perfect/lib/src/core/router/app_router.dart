@@ -9,8 +9,8 @@ import 'package:picture_perfect/src/presentation/pages/auth/splash_page.dart';
 import 'package:picture_perfect/src/presentation/pages/create/create_poll_page.dart';
 import 'package:picture_perfect/src/presentation/pages/explore/explore_page.dart';
 import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
-import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
 import 'package:picture_perfect/src/presentation/pages/poll/poll_results_page.dart';
+import 'package:picture_perfect/src/presentation/pages/profile/profile_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/user_view_model.dart';
 import 'package:provider/provider.dart';
@@ -143,11 +143,11 @@ class AppRouter {
         return '/splash';
       }
 
-      // If authenticated but user profile not loaded, go to splash
-      if (authViewModel.status == AuthStatus.authenticated &&
-          userViewModel.user == null) {
-        return '/splash';
-      }
+      // // If authenticated but user profile not loaded, go to splash
+      // if (authViewModel.status == AuthStatus.authenticated &&
+      //     userViewModel.user == null) {
+      //   return '/splash';
+      // }
 
       // If authenticated and user profile loaded, redirect from auth routes to home
       if (authViewModel.status == AuthStatus.authenticated &&

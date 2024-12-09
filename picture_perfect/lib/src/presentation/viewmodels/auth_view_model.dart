@@ -205,7 +205,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Add this method to check if the user is actually authenticated with Firebase
+  // method to check if the user is actually authenticated with Firebase
   Future<bool> validateAuthState() async {
     bool isValid = false;
 
@@ -236,7 +236,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  // Add this method to initialize the auth state
+  // method to initialize the auth state
   Future<void> initializeAuthState([BuildContext? context]) async {
     try {
       final user = await _authRepository.getCurrentUser();

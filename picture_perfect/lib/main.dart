@@ -37,6 +37,7 @@ void main() async {
 
   final authViewModel = AuthViewModel(authRepository);
   final userViewModel = UserViewModel(userRepository);
+  final pollViewModel = PollViewModel(pollRepository);
 
   await authViewModel.initializeAuthState();
 
@@ -45,7 +46,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: authViewModel),
         ChangeNotifierProvider.value(value: userViewModel),
-        ChangeNotifierProvider(create: (_) => PollViewModel(pollRepository)),
+        ChangeNotifierProvider.value(value: pollViewModel)
       ],
       child: const MyApp(),
     ),

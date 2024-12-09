@@ -6,8 +6,6 @@ import 'package:picture_perfect/src/presentation/pages/home/home_page.dart';
 import 'package:picture_perfect/src/presentation/viewmodels/auth_view_model.dart';
 import 'package:provider/provider.dart';
 
-import '../../viewmodels/user_view_model.dart';
-
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
@@ -19,21 +17,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-
-    // Call this after the first frame is rendered to ensure providers are ready
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeUserState();
-    });
-  }
-
-  void _initializeUserState() {
-    final authViewModel = context.read<AuthViewModel>();
-    final userViewModel = context.read<UserViewModel>();
-
-    final userId = authViewModel.currentUser?.id;
-    if (userId != null) {
-      userViewModel.loadUserProfile(userId);
-    }
   }
 
   @override
