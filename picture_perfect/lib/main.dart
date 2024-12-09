@@ -1,6 +1,8 @@
 library;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:picture_perfect/firebase_options.dart';
 import 'package:picture_perfect/src/core/router/app_router.dart';
@@ -31,8 +33,11 @@ void main() async {
     AppLogger.error('Failed to initialize Firebase', e, stackTrace);
   }
 
+  final firestore = FirebaseFirestore.instance;
+  final storage = FirebaseStorage.instance;
+
   final authRepository = AuthRepository();
-  final userRepository = UserRepository();
+  final userRepository = UserRepository(firestore: firestore, storage: storage);
   final pollRepository = PollRepository();
 
   final authViewModel = AuthViewModel(authRepository);

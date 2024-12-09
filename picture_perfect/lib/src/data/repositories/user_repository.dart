@@ -14,10 +14,10 @@ class UserRepository {
   final String collection = 'users';
 
   UserRepository({
-    FirebaseFirestore? firestore,
-    FirebaseStorage? storage,
-  })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance;
+    required FirebaseFirestore firestore, // Required parameter
+    required FirebaseStorage storage, // Required parameter
+  })  : _firestore = firestore,
+        _storage = storage;
 
   // Create new user document
   Future<Result<UserModel>> createUser(auth.User firebaseUser) async {
@@ -27,7 +27,7 @@ class UserRepository {
       return Success(user);
     } catch (e) {
       return Failure(
-        message: 'Failed to create user profile',
+        message: 'Failed to create user profile: ${e.toString()}',
         error: e,
       );
     }
@@ -45,7 +45,7 @@ class UserRepository {
       return Success(UserModel.fromDocument(doc));
     } catch (e) {
       return Failure(
-        message: 'Failed to fetch user profile',
+        message: 'Failed to fetch user profile ${e.toString()}',
         error: e,
       );
     }
@@ -72,7 +72,7 @@ class UserRepository {
       return Success(UserModel.fromDocument(updatedDoc));
     } catch (e) {
       return Failure(
-        message: 'Failed to update profile',
+        message: 'Failed to update profile ${e.toString()}',
         error: e,
       );
     }
@@ -119,7 +119,9 @@ class UserRepository {
       return Success(imageUrl);
     } catch (e) {
       AppLogger.error('Profile picture upload error: $e');
-      return Failure(message: 'Failed to update profile picture', error: e);
+      return Failure(
+          message: 'Failed to update profile picture: ${e.toString()}',
+          error: e);
     }
   }
 
@@ -146,7 +148,7 @@ class UserRepository {
       return const Success(null);
     } catch (e) {
       return Failure(
-        message: 'Failed to update user statistics',
+        message: 'Failed to update user statistics: ${e.toString()}',
         error: e,
       );
     }
@@ -178,7 +180,7 @@ class UserRepository {
     } catch (e) {
       AppLogger.error('Toggle save failed:', e);
       return Failure(
-        message: 'Failed to update saved polls',
+        message: 'Failed to update saved polls $userId: ${e.toString()}',
         error: e,
       );
     }
@@ -206,7 +208,7 @@ class UserRepository {
       return Success(userData.savedPosts);
     } catch (e) {
       return Failure(
-        message: 'Failed to fetch saved polls',
+        message: 'Failed to fetch saved polls ${e.toString()}',
         error: e,
       );
     }
@@ -235,7 +237,7 @@ class UserRepository {
       return const Success(null);
     } catch (e) {
       return Failure(
-        message: 'Failed to delete user account',
+        message: 'Failed to delete user account ${e.toString()}',
         error: e,
       );
     }
@@ -277,30 +279,6 @@ class UserRepository {
       return const Success(null);
     } catch (e) {
       return Failure(message: e.toString());
-    }
-  }
-
-  Future<void> migrateFollowersToList() async {
-    try {
-      final QuerySnapshot users = await _firestore.collection('users').get();
-
-      final batch = _firestore.batch();
-
-      for (var doc in users.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-
-        // Check if followers/following are numbers
-        if (data['followers'] is num || data['following'] is num) {
-          batch.update(doc.reference, {
-            'followers': [], // Reset to empty list
-            'following': [], // Reset to empty list
-          });
-        }
-      }
-
-      await batch.commit();
-    } catch (e) {
-      AppLogger.error('Migration error: $e');
     }
   }
 }
