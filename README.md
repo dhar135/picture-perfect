@@ -126,5 +126,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contact
 
 Donovan Harrison - donovan.harrison.swe@gmail.com
-
-Project Link: https://github.com/yourusername/picture-perfect
