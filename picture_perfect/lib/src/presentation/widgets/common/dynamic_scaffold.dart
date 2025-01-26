@@ -80,7 +80,7 @@ class _ScaffoldWithBottomNavbarState extends State<DynamicScaffold> {
         );
       case '/profile':
         return AppBar(
-          title: Text(user?.name ?? 'Profile'),
+          title: Text('Profile'),
           actions: [
             IconButton(
               icon: const Icon(Icons.edit),
